@@ -220,13 +220,14 @@ namespace SharpAdbClient
         }
 
         /// <inheritdoc/>
-        public void SetDevice(IAdbSocket socket, DeviceData device)
+        public void SetDevice(IAdbSocket socket, IAdbDeviceData device)
         {
             // if the device is not null, then we first tell adb we're looking to talk
             // to a specific device
-            if (device != null)
+            if (device != null && device.GetType() == typeof(DeviceData))
             {
-                socket.SendAdbRequest($"host:transport:{device.Serial}");
+                var data = device as DeviceData;
+                socket.SendAdbRequest($"host:transport:{data.Serial}");
 
                 try
                 {
@@ -236,7 +237,7 @@ namespace SharpAdbClient
                 {
                     if (string.Equals("device not found", e.AdbError, StringComparison.OrdinalIgnoreCase))
                     {
-                        throw new DeviceNotFoundException(device.Serial);
+                        throw new DeviceNotFoundException(data.Serial);
                     }
                     else
                     {
@@ -384,6 +385,19 @@ namespace SharpAdbClient
 
                 // Convert the framebuffer to an image, and return that.
                 return framebuffer.ToImage();
+            }
+        }
+
+        /// <inheritdoc/>
+        public static async Task<System.Drawing.Image> GetFrameBufferAsync(IAdbDeviceData device, CancellationToken cancellationToken)
+        {
+            var buffer = new Framebuffer(device);
+            using (buffer)
+            {
+                await buffer.RefreshAsync(cancellationToken).ConfigureAwait(false);
+
+                // Convert the framebuffer to an image, and return that.
+                return buffer.ToImage();
             }
         }
 

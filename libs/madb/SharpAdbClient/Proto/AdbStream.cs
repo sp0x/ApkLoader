@@ -11,15 +11,16 @@ namespace SharpAdbClient.Proto
         public IPropagatorBlock<byte[], byte[]> Block { get; private set; }
         private TcpSocket _sock;
         private BufferBlock<byte[]> _outputBlock;
+        private ActionBlock<byte[]> _inputBlock;
         public event EventHandler<EventArgs> OnWriting;
-
+        
         public AdbStream(TcpSocket sock, uint localId)
         {
             _sock = sock;
             this.LocalId = localId;
 
             _outputBlock = new BufferBlock<byte[]>();
-            var inputBlock = new ActionBlock<byte[]>(bytes =>
+            _inputBlock = new ActionBlock<byte[]>(bytes =>
             {
                 var buff = Command.CreateWriteCommand(LocalId, RemoteId, bytes);
                 OnWriting?.Invoke(this, EventArgs.Empty);
@@ -29,7 +30,7 @@ namespace SharpAdbClient.Proto
                 }
                 _sock.Send(buff);
             });
-            Block = DataflowBlock.Encapsulate(inputBlock, _outputBlock);
+            Block = DataflowBlock.Encapsulate(_inputBlock, _outputBlock);
         }
 
         public void HandlePacket(AdbPacket newPacket)
@@ -42,6 +43,19 @@ namespace SharpAdbClient.Proto
             _sock.Send(okay);
             _outputBlock.Post(newPacket.Data);
 
+        }
+
+        public void Close()
+        {
+            if (Block != null)
+            {
+                Block.Complete();
+            }
+            _outputBlock.Complete();
+            _inputBlock.Complete();
+            LocalId = 0;
+            RemoteId = 0;
+            _sock = null;
         }
     }
 }

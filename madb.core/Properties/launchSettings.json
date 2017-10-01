@@ -2,7 +2,7 @@
   "profiles": {
     "coreadb": {
       "commandName": "Project",
-      "commandLineArgs": "-r --host gb.ovaras.net"
+      "commandLineArgs": "--scr 10.10.10.45 --host gb.ovaras.net"
     }
   }
 }

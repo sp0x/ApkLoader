@@ -38,34 +38,77 @@ namespace coreadb
 
         private void NoticeDevice(SmDevice newDevice)
         {
-            ConnectedDevices.Add(newDevice.Ip, newDevice);
+            if (newDevice != null && newDevice.Ip!=null)
+            {
+                ConnectedDevices.Add(newDevice.Ip, newDevice);
+            }
+            
         }
 
         public async void RebootAll()
         {
             var rebootBuff = new BufferBlock<SmDeviceInfo>();
-            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice));
+            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(CreateDevice));
             var rebootBlock = new ActionBlock<SmDevice>(x =>
             {
                 if (x != null)
                 {
-                    x.GetShell();
+                    //_manager.Screenshot(x, "scrfile.png");
+                    x.Reboot();
+                    //x.ConnectToAdb();
                 }
             }); 
             rebootBuff.LinkTo(connectorBlock, new DataflowLinkOptions {PropagateCompletion = true});
             connectorBlock.LinkTo(rebootBlock, new DataflowLinkOptions {PropagateCompletion = true});
-            foreach (var device in GetDevices().Skip(5).Take(1))
+            foreach (var device in GetDevices().Take(1))
             {
                 rebootBuff.Post(device);
             }
             rebootBuff.Complete();
-            await rebootBlock.Completion;
+            //await rebootBlock.Completion;
+        }
+        public async void RestartAll()
+        {
+            var rebootBuff = new BufferBlock<SmDeviceInfo>();
+            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(CreateDevice));
+            var rebootBlock = new ActionBlock<SmDevice>(x =>
+            {
+                if (x != null)
+                {
+                    //_manager.Screenshot(x, "scrfile.png");
+                    x.KillSmApp();
+                    //x.ConnectToAdb();
+                }
+            });
+            rebootBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            connectorBlock.LinkTo(rebootBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            foreach (var device in GetDevices().Take(1))
+            {
+                rebootBuff.Post(device);
+            }
+            rebootBuff.Complete();
+            //await rebootBlock.Completion;
+        }
+
+        public async void Screenshot(string id)
+        {
+            var deviceInfo = GetDevice(id);
+            var device = await CreateDevice(deviceInfo);
+            _manager.Screenshot(device, $"{id}.png");
         }
 
         private async Task<SmDevice> ConnectToDevice(SmDeviceInfo arg)
         {
             var port = _netManager.Forward(arg.Ip, 5555);
             var device = await _manager.ConnectDevice("127.0.0.1", port);
+            NoticeDevice(device);
+            return device;
+        }
+
+        private async Task<SmDevice> CreateDevice(SmDeviceInfo info)
+        {
+            var port = _netManager.Forward(info.Ip, 5555);
+            var device = _manager.CreateDevice("127.0.0.1", port);
             NoticeDevice(device);
             return device;
         }
@@ -83,6 +126,20 @@ namespace coreadb
                 }
             }
         }
-         
+        public SmDeviceInfo GetDevice(string ip)
+        {
+            var listCommand = new MySqlCommand($"SELECT * from sm_devices where ip=\"{ip}\" AND work_or_not=1 AND is_active=1", _dbConnection);
+            using (var reader = listCommand.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    var deviceIp = reader["ip"].ToString();
+                    var device = new SmDeviceInfo(deviceIp);
+                    return device;
+                }
+            }
+            return null;
+        }
+
     } 
 }

@@ -18,6 +18,7 @@ namespace coreadb
 
         public AdbManager()
         {
+            _deviceList = new Dictionary<string, DeviceData>();
             _server = new AdbServer();
             _server.StartServer(GetAdbPath(), restartServerIfNewer: false);
         }
@@ -44,11 +45,13 @@ namespace coreadb
             var dev = args.Device;
             Console.WriteLine($"Device disconnected {dev.Name}[{dev.Model}/{dev.Serial}]");
         }
+
         private void CacheDeviceList()
         {
             foreach (var dev in AdbClient.Instance.GetDevices())
             {
-                _deviceList[dev.Serial] = dev;
+                var serial = dev.Serial;
+                _deviceList[serial] = dev;
             }
         }
 
@@ -133,6 +136,24 @@ namespace coreadb
             RemoteAdbDevice remoteDev = await RemoteAdbDevice.Factory.Create(s, port);
             var smDevice = new SmDevice(remoteDev);
             return smDevice;
+        }
+
+        public void Screenshot(SmDevice device, string filename)
+        {
+            var serial = device.EndPoint.ToString();
+            device.ConnectToAdb();
+            var deviceData = GetDeviceData(serial);
+            var adbDev = new Device(deviceData);
+            var screen = adbDev.Screenshot;
+            screen.Save(filename);
+        }
+
+        public SmDevice CreateDevice(string s, uint port)
+        {
+            var endpoint = new IPEndPoint(Dns.Resolve(s).AddressList[0], (int)port);
+            var remoteDev = new RemoteAdbDevice(endpoint);
+            var smDev = new SmDevice(remoteDev);
+            return smDev;
         }
     }
 }

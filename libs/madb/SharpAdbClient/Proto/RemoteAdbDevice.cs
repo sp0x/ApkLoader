@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -9,7 +10,7 @@ using System.Threading.Tasks.Dataflow;
 
 namespace SharpAdbClient.Proto
 {
-    public class RemoteAdbDevice
+    public class RemoteAdbDevice : IAdbDeviceData
     {
 
         public event EventHandler Connected;
@@ -35,7 +36,13 @@ namespace SharpAdbClient.Proto
         public IPEndPoint EndPoint { get; private set; }
         public Dictionary<uint, AdbStream> OpenStreams { get; private set; }
         private CancellationToken _readCancellation;
-        
+
+
+        public RemoteAdbDevice(IPEndPoint endpoint, CancellationToken? cancellationToken = null)
+            : this(cancellationToken)
+        {
+            this.EndPoint = endpoint;
+        }
         public RemoteAdbDevice(CancellationToken? cancellationToken = null)
         {
             OpenStreams = new Dictionary<uint, AdbStream>();
@@ -66,6 +73,8 @@ namespace SharpAdbClient.Proto
             return stream.Block;
         }
 
+        public string GetEndpoint() => EndPoint.ToString();
+
         private void StreamWriting(object sender, EventArgs e)
         {
             //throw new NotImplementedException();
@@ -74,6 +83,34 @@ namespace SharpAdbClient.Proto
         public async Task<IPropagatorBlock<byte[], byte[]>> CreateShellStream()
         {
             return await CreateStream("shell:");
+        }
+
+        public async void CreateScreenshot(string filename)
+        {
+            var file = File.Open(filename, FileMode.Create);
+            var stream = await CreateStream("framebuffer:");
+            var writer = new ActionBlock<byte[]>(bytes =>
+            {
+                file.Write(bytes, 0, bytes.Length);
+            });
+            stream.LinkTo(writer, new DataflowLinkOptions{PropagateCompletion = true});
+            await stream.Completion;
+            file.Flush();
+        }
+
+        public async Task<String> Execute(string command)
+        {
+            var stream = await CreateStream($"shell:{command}");
+            var buffer = new MemoryStream();
+            var binWr = new BinaryWriter(buffer);
+            var action = new ActionBlock<byte[]>(x =>
+            {
+                binWr.Write(x);
+            });
+            stream.LinkTo(action, new DataflowLinkOptions {PropagateCompletion = true});
+            await action.Completion;
+            var output = Encoding.UTF8.GetString(buffer.ToArray());
+            return output;
         }
 
         private void StartReading()
@@ -100,15 +137,6 @@ namespace SharpAdbClient.Proto
                 HostVersion = _lastPacket.arg1;
                 HostMaxData = _lastPacket.arg2;
                 State = ConnectionState.Connected;
-                if (_lastPacket.DataLength == 0)
-                {
-
-                }
-                else
-                {
-
-                }
-                //_waitingForHeader = false;
                 Connected?.Invoke(this, EventArgs.Empty);
             }
             else if (_lastPacket.Command == Command.OKAY)
@@ -128,9 +156,17 @@ namespace SharpAdbClient.Proto
                 {
                     var stream = OpenStreams[streamId];
                     stream.HandlePacket(_lastPacket);
-                    Suspended = true;
+                    //Suspended = true;
                 }
-
+            }
+            else if (_lastPacket.Command == Command.CLSE)
+            {
+                var streamId = _lastPacket.arg2;
+                if (OpenStreams.ContainsKey(streamId))
+                {
+                    OpenStreams[streamId].Close();
+                    OpenStreams.Remove(streamId);
+                }
             }
         }
 
@@ -144,6 +180,10 @@ namespace SharpAdbClient.Proto
             AdbPacket currentPacket = null;
             while (true)
             {
+                while (Suspended)
+                {
+                    Thread.Sleep(1);
+                }
                 if (_waitingForHeader)
                 {
                     byte[] header = new byte[24];
@@ -152,7 +192,7 @@ namespace SharpAdbClient.Proto
                     {
                         break;
                     }
-                    Debug.WriteLine($"Got {readBytes} bytes");
+                   
                     currentPacket = AdbPacket.FromBuffer(header);
                     if (currentPacket.DataLength == 0)
                     {
@@ -190,6 +230,12 @@ namespace SharpAdbClient.Proto
                 var endpoint = new IPEndPoint(Dns.Resolve(host).AddressList[0], (int)port);
                 return await remotedev.Connect(endpoint);
             }
+        }
+
+        public void Disconnect()
+        {
+            OpenStreams.Clear();
+            _socket.Dispose();
         }
     }
 }

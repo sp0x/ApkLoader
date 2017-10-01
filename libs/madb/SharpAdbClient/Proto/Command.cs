@@ -24,7 +24,8 @@ namespace SharpAdbClient.Proto
 
         public static byte[] CreateConnectCommand()
         {
-            var packet = new AdbPacket(CNXN, 0x01000000, 4096, "host::");
+            var hostData = "host::features=stat_v2,shell_v2,cmd";
+            var packet = new AdbPacket(CNXN, 0x01000000, 4096, hostData);
             return packet.ToBuffer();
         }
 

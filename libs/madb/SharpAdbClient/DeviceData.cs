@@ -10,7 +10,7 @@ namespace SharpAdbClient
     /// <summary>
     /// Represents a device that is connected to the Android Debug Bridge.
     /// </summary>
-    public class DeviceData
+    public class DeviceData : IAdbDeviceData
     {
         /// <summary>
         /// A regular expression that can be used to parse the device information that is returned
@@ -32,6 +32,8 @@ namespace SharpAdbClient
             get;
             set;
         }
+
+        public string GetEndpoint() => Serial;
 
         /// <summary>
         /// Gets or sets the device state.

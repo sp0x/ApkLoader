@@ -114,7 +114,7 @@ namespace SharpAdbClient
         void Disconnect(DnsEndPoint endpoint);
 
         /// <include file='IAdbClient.xml' path='/IAdbClient/SetDevice/*'/>
-        void SetDevice(IAdbSocket socket, DeviceData device);
+        void SetDevice(IAdbSocket socket, IAdbDeviceData device);
 
         /// <summary>
         /// Restarts the ADB daemon running on the device with root privileges.

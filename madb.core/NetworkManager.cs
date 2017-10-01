@@ -42,7 +42,7 @@ namespace coreadb
 
         public uint Forward(string host, uint port)
         {
-            uint rndPort = 3333;//(uint)new Random().Next(1025, 65000);
+            uint rndPort = (uint)new Random().Next(1025, 65000);
             var newPort = new ForwardedPortLocal("127.0.0.1", rndPort, host, port);
             newPort.Exception += delegate (object sender, ExceptionEventArgs e)
             {

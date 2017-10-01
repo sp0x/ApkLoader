@@ -2,6 +2,7 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
+using System.Net;
 using SixLabors.ImageSharp;
 
 namespace SharpAdbClient
@@ -34,31 +35,42 @@ namespace SharpAdbClient
         /// <param name="client">
         /// A <see cref="AdbClient"/> which manages the connection with adb.
         /// </param>
-        public Framebuffer(DeviceData device, AdbClient client)
+        public Framebuffer(IAdbDeviceData device)
         {
             if (device == null)
             {
                 throw new ArgumentNullException(nameof(device));
             }
-
-            if (client == null)
-            {
-                throw new ArgumentNullException(nameof(client));
-            }
-
             this.Device = device;
-
-            this.client = client;
 
             // Initialize the headerData buffer
             var size = Marshal.SizeOf<FramebufferHeader>();
             this.headerData = new byte[size];
         }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Framebuffer"/> class.
+        /// </summary>
+        /// <param name="device">
+        /// The device for which to fetch the frame buffer.
+        /// </param>
+        /// <param name="client">
+        /// A <see cref="AdbClient"/> which manages the connection with adb.
+        /// </param>
+        public Framebuffer(DeviceData device, AdbClient client)
+            : this(device)
+        { 
+
+            if (client == null)
+            {
+                throw new ArgumentNullException(nameof(client));
+            }
+            this.client = client;
+        }
 
         /// <summary>
         /// Gets the device for which to fetch the frame buffer.
         /// </summary>
-        public DeviceData Device
+        public IAdbDeviceData Device
         {
             get;
             private set;
@@ -97,7 +109,15 @@ namespace SharpAdbClient
         public async Task RefreshAsync(CancellationToken cancellationToken)
         {
             this.EnsureNotDisposed();
-
+            EndPoint endpoint = null;
+            if (this.Device.GetType() == typeof(DeviceData))
+            {
+                endpoint = this.client.EndPoint;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
             using (var socket = Factories.AdbSocketFactory(this.client.EndPoint))
             {
                 // Select the target device

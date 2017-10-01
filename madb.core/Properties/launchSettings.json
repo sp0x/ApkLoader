@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "coreadb": {
+      "commandName": "Project",
+      "commandLineArgs": "-r --host gb.ovaras.net"
+    }
+  }
+}

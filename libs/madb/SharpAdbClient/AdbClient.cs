@@ -7,8 +7,7 @@ namespace SharpAdbClient
     using SharpAdbClient.Exceptions;
     using SharpAdbClient.Logs;
     using System;
-    using System.Collections.Generic;
-    using System.Drawing;
+    using System.Collections.Generic; 
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -16,6 +15,8 @@ namespace SharpAdbClient
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using SixLabors.ImageSharp.Drawing;
+    using SixLabors.ImageSharp;
 
     /// <summary>
     /// <para>
@@ -372,19 +373,19 @@ namespace SharpAdbClient
             return new Framebuffer(device, this);
         }
 
-        // /// <inheritdoc/>
-        // public async Task<Image> GetFrameBufferAsync(DeviceData device, CancellationToken cancellationToken)
-        // {
-        //     this.EnsureDevice(device);
+        /// <inheritdoc/>
+        public async Task<System.Drawing.Image> GetFrameBufferAsync(DeviceData device, CancellationToken cancellationToken)
+        {
+            this.EnsureDevice(device);
 
-        //     using (Framebuffer framebuffer = this.CreateRefreshableFramebuffer(device))
-        //     {
-        //         await framebuffer.RefreshAsync(cancellationToken).ConfigureAwait(false);
+            using (Framebuffer framebuffer = this.CreateRefreshableFramebuffer(device))
+            {
+                await framebuffer.RefreshAsync(cancellationToken).ConfigureAwait(false);
 
-        //         // Convert the framebuffer to an image, and return that.
-        //         return framebuffer.ToImage();
-        //     }
-        // }
+                // Convert the framebuffer to an image, and return that.
+                return framebuffer.ToImage();
+            }
+        }
 
         /// <inheritdoc/>
         public async Task RunLogServiceAsync(DeviceData device, Action<LogEntry> messageSink, CancellationToken cancellationToken, params LogId[] logNames)

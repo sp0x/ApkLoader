@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26906.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "coreadb", "madb.core\coreadb.csproj", "{8C4D8C19-42D3-4409-905C-7D952517F6AB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp", "libs\ImageSharp\src\ImageSharp\ImageSharp.csproj", "{C38AD057-1A7D-4EF1-BC92-77420B2818A9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Drawing", "libs\ImageSharp\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj", "{663FAA2C-11BB-49A0-860E-9D271DC9B04F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpAdbClient", "libs\madb\SharpAdbClient\SharpAdbClient.csproj", "{02269D70-0516-4393-A71E-2C0C6A949EEB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpAdbClient.Extensions", "libs\madb\SharpAdbClient.Extensions\SharpAdbClient.Extensions.csproj", "{DD7C2241-89C3-45E8-A89D-0DEDAF895755}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSH.Net.Core", "libs\ssh.net.core\SSH.Net.Core.csproj", "{9A95DC4E-362B-48FF-913F-0857D052EE02}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8C4D8C19-42D3-4409-905C-7D952517F6AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C4D8C19-42D3-4409-905C-7D952517F6AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C4D8C19-42D3-4409-905C-7D952517F6AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C4D8C19-42D3-4409-905C-7D952517F6AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C38AD057-1A7D-4EF1-BC92-77420B2818A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C38AD057-1A7D-4EF1-BC92-77420B2818A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C38AD057-1A7D-4EF1-BC92-77420B2818A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C38AD057-1A7D-4EF1-BC92-77420B2818A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{663FAA2C-11BB-49A0-860E-9D271DC9B04F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{663FAA2C-11BB-49A0-860E-9D271DC9B04F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{663FAA2C-11BB-49A0-860E-9D271DC9B04F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{663FAA2C-11BB-49A0-860E-9D271DC9B04F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02269D70-0516-4393-A71E-2C0C6A949EEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02269D70-0516-4393-A71E-2C0C6A949EEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02269D70-0516-4393-A71E-2C0C6A949EEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02269D70-0516-4393-A71E-2C0C6A949EEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD7C2241-89C3-45E8-A89D-0DEDAF895755}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD7C2241-89C3-45E8-A89D-0DEDAF895755}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD7C2241-89C3-45E8-A89D-0DEDAF895755}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD7C2241-89C3-45E8-A89D-0DEDAF895755}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A95DC4E-362B-48FF-913F-0857D052EE02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A95DC4E-362B-48FF-913F-0857D052EE02}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A95DC4E-362B-48FF-913F-0857D052EE02}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A95DC4E-362B-48FF-913F-0857D052EE02}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {86F70A51-5D14-444F-9D1F-B76A062C5ECD}
+	EndGlobalSection
+EndGlobal

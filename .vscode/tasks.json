@@ -7,7 +7,7 @@
         {
             "taskName": "build",
             "args": [
-                "${workspaceRoot}/coreadb.csproj"
+                "${workspaceRoot}/madb.core/coreadb.csproj"
             ],
             "isBuildCommand": true,
             "problemMatcher": "$msCompile"

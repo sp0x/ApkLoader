@@ -2,6 +2,8 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
+using SixLabors.ImageSharp;
+
 namespace SharpAdbClient
 {
     using DeviceCommands;
@@ -548,7 +550,7 @@ namespace SharpAdbClient
         /// Takes a screen shot of the device and returns it as a <see cref="RawImage"/>
         /// </summary>
         /// <value>The screenshot.</value>
-        public Image Screenshot
+        public System.Drawing.Image Screenshot
         {
             get
             {
@@ -650,9 +652,9 @@ namespace SharpAdbClient
         /// <param name="logname">
         /// The names of the log files to retrieve.
         /// </param>
-        public IEnumerable<LogEntry> RunLogService(params LogId[] logNames)
+        public async void RunLogService(Action<LogEntry> sink, params LogId[] logNames)
         {
-            return AdbClient.Instance.RunLogService(this.DeviceData, logNames);
+            await AdbClient.Instance.RunLogServiceAsync(this.DeviceData, sink, CancellationToken.None, logNames);
         }
 
         /// <summary>

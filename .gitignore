@@ -2,3 +2,6 @@ obj/
 bin/
 **/bin/
 **/obj/
+/madb.core/keys/key
+/madb.core/keys/key.pub
+*/bin/Debug

@@ -2,16 +2,17 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
+using System.Collections.Generic;
+
 namespace SharpAdbClient
 {
     using Logs;
-    using System;
-    using System.Collections.Generic;
-    using System.Drawing;
+    using System; 
     using System.IO;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using SixLabors.ImageSharp;
 
     /// <summary>
     /// A common interface for any class that allows you to interact with the
@@ -87,8 +88,8 @@ namespace SharpAdbClient
         /// </returns>
         Framebuffer CreateRefreshableFramebuffer(DeviceData device);
 
-        // /// <include file='IAdbClient.xml' path='/IAdbClient/GetFrameBuffer/*'/>
-        // Task<Image> GetFrameBufferAsync(DeviceData device, CancellationToken cancellationToken);
+        /// <include file='IAdbClient.xml' path='/IAdbClient/GetFrameBuffer/*'/>
+        Task<System.Drawing.Image> GetFrameBufferAsync(DeviceData device, CancellationToken cancellationToken);
 
         // jdwp:<pid>: not implemented
         // track-jdwp: not implemented

@@ -107,7 +107,7 @@ namespace SharpAdbClient
         public static IAdbServer Instance
         { get; set; } = new AdbServer();
 
-        /// <inheritdoc/>
+        /// <inheritdoc></inheritdoc>
         public StartServerResult StartServer(string adbPath, bool restartServerIfNewer)
         {
             var serverStatus = this.GetStatus();

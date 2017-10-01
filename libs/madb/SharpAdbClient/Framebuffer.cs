@@ -2,6 +2,8 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
+using SixLabors.ImageSharp;
+
 namespace SharpAdbClient
 {
     using System;
@@ -134,23 +136,23 @@ namespace SharpAdbClient
             }
         }
 
-        // /// <summary>
-        // /// Converts the framebuffer data to a <see cref="Image"/>.
-        // /// </summary>
-        // /// <returns>
-        // /// An <see cref="Image"/> which represents the framebuffer data.
-        // /// </returns>
-        // public Image ToImage()
-        // {
-        //     this.EnsureNotDisposed();
+        /// <summary>
+        /// Converts the framebuffer data to a <see cref="Image"/>.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="Image"/> which represents the framebuffer data.
+        /// </returns>
+        public System.Drawing.Image ToImage()
+        {
+            this.EnsureNotDisposed();
 
-        //     if (this.Data == null)
-        //     {
-        //         throw new InvalidOperationException("Call RefreshAsync first");
-        //     }
+            if (this.Data == null)
+            {
+                throw new InvalidOperationException("Call RefreshAsync first");
+            }
 
-        //     return this.Header.ToImage(this.Data);
-        // }
+            return this.Header.ToImage(this.Data);
+        }
 
         /// <inheritdoc/>
         public void Dispose()

@@ -2,11 +2,14 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
+using System.Drawing;
+using System.Drawing.Imaging;
+using SixLabors.ImageSharp;
+using Image = SixLabors.ImageSharp.Image;
+
 namespace SharpAdbClient
 {
-    using System;
-    using System.Drawing;
-//     using System.Drawing.Imaging;
+    using System;  
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Text;
@@ -114,162 +117,161 @@ namespace SharpAdbClient
             return header;
         }
 
-        // /// <summary>
-        // /// Converts a <see cref="byte"/> array containing the raw frame buffer data to a <see cref="Image"/>.
-        // /// </summary>
-        // /// <param name="buffer">
-        // /// The buffer containing the image data.
-        // /// </param>
-        // /// <returns>
-        // /// A <see cref="Image"/> that represents the image contained in the frame buffer, or <see langword="null"/> if the framebuffer
-        // /// does not contain any data. This can happen when DRM is enabled on the device.
-        // /// </returns>
-        // public Image ToImage(byte[] buffer)
-        // {
-        //     if (buffer == null)
-        //     {
-        //         throw new ArgumentNullException(nameof(buffer));
-        //     }
+        /// <summary>
+        /// Converts a <see cref="byte"/> array containing the raw frame buffer data to a <see cref="SixLabors.ImageSharp.Image"/>.
+        /// </summary>
+        /// <param name="buffer">
+        /// The buffer containing the image data.
+        /// </param>
+        /// <returns>
+        /// A <see cref="SixLabors.ImageSharp.Image"/> that represents the image contained in the frame buffer, or <see langword="null"/> if the framebuffer
+        /// does not contain any data. This can happen when DRM is enabled on the device.
+        /// </returns>
+        public System.Drawing.Image ToImage(byte[] buffer)
+        {
+            if (buffer == null)
+            {
+                throw new ArgumentNullException(nameof(buffer));
+            }
 
-        //     // This happens, for example, when DRM is enabled. In that scenario, no screenshot is taken on the device and an empty
-        //     // framebuffer is returned; we'll just return null.
-        //     if (this.Width == 0 || this.Height == 0 || this.Bpp == 0)
-        //     {
-        //         return null;
-        //     }
+            // This happens, for example, when DRM is enabled. In that scenario, no screenshot is taken on the device and an empty
+            // framebuffer is returned; we'll just return null.
+            if (this.Width == 0 || this.Height == 0 || this.Bpp == 0)
+            {
+                return null;
+            }
 
-        //     // The pixel format of the framebuffer may not be one that .NET recognizes, so we need to fix that
-        //     var pixelFormat = this.StandardizePixelFormat(buffer);
+            // The pixel format of the framebuffer may not be one that .NET recognizes, so we need to fix that
+            var pixelFormat = this.StandardizePixelFormat(buffer); 
+            Bitmap bitmap = new Bitmap((int)this.Width, (int)this.Height, pixelFormat);
+            BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.WriteOnly, pixelFormat);
+            Marshal.Copy(buffer, 0, bitmapData.Scan0, buffer.Length);
+            bitmap.UnlockBits(bitmapData);
 
-        //     Bitmap bitmap = new Bitmap((int)this.Width, (int)this.Height, pixelFormat);
-        //     BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.WriteOnly, pixelFormat);
-        //     Marshal.Copy(buffer, 0, bitmapData.Scan0, buffer.Length);
-        //     bitmap.UnlockBits(bitmapData);
+            return (System.Drawing.Image)bitmap;
+        }
 
-        //     return bitmap;
-        // }
+//        /// <summary>
+//        /// Returns the <see cref="PixelFormat"/> that describes pixel format of an image that is stored according to the information
+//        /// present in this <see cref="FramebufferHeader"/>. Because the <see cref="PixelFormat"/> enumeration does not allow for all
+//        /// formats supported by Android, this method also takes a <paramref name="buffer"/> and reorganizes the bytes in the buffer to
+//        /// match the return value of this function.
+//        /// </summary>
+//        /// <param name="buffer">
+//        /// A byte array in which the images are stored according to this <see cref="FramebufferHeader"/>.
+//        /// </param>
+//        /// <returns>
+//        /// A <see cref="PixelFormat"/> that describes how the image data is represented in this <paramref name="buffer"/>.
+//        /// </returns>
+        private PixelFormat StandardizePixelFormat(byte[] buffer)
+        {
+            // Initial parameter validation.
+            if (buffer == null)
+            {
+                throw new ArgumentNullException(nameof(buffer));
+            }
 
-        // /// <summary>
-        // /// Returns the <see cref="PixelFormat"/> that describes pixel format of an image that is stored according to the information
-        // /// present in this <see cref="FramebufferHeader"/>. Because the <see cref="PixelFormat"/> enumeration does not allow for all
-        // /// formats supported by Android, this method also takes a <paramref name="buffer"/> and reorganizes the bytes in the buffer to
-        // /// match the return value of this function.
-        // /// </summary>
-        // /// <param name="buffer">
-        // /// A byte array in which the images are stored according to this <see cref="FramebufferHeader"/>.
-        // /// </param>
-        // /// <returns>
-        // /// A <see cref="PixelFormat"/> that describes how the image data is represented in this <paramref name="buffer"/>.
-        // /// </returns>
-        // private PixelFormat StandardizePixelFormat(byte[] buffer)
-        // {
-        //     // Initial parameter validation.
-        //     if (buffer == null)
-        //     {
-        //         throw new ArgumentNullException(nameof(buffer));
-        //     }
+            if (buffer.Length != this.Width * this.Height * (this.Bpp / 8))
+            {
+                throw new ArgumentOutOfRangeException(nameof(buffer));
+            }
 
-        //     if (buffer.Length != this.Width * this.Height * (this.Bpp / 8))
-        //     {
-        //         throw new ArgumentOutOfRangeException(nameof(buffer));
-        //     }
+            if (this.Width == 0 || this.Height == 0 || this.Bpp == 0)
+            {
+                throw new InvalidOperationException("Cannot caulcate the pixel format of an empty framebuffer");
+            }
 
-        //     if (this.Width == 0 || this.Height == 0 || this.Bpp == 0)
-        //     {
-        //         throw new InvalidOperationException("Cannot caulcate the pixel format of an empty framebuffer");
-        //     }
+            // By far, the most common format is a 32-bit pixel format, which is either
+            // RGB or RGBA, where each color has 1 byte.
+            if (this.Bpp == 32)
+            {
+                // Require at leat RGB to be present; and require them to be exactly one byte (8 bits) long.
+                if (this.Red.Length != 8
+                    || this.Blue.Length != 8
+                    || this.Green.Length != 8)
+                {
+                    throw new ArgumentOutOfRangeException();
+                }
 
-        //     // By far, the most common format is a 32-bit pixel format, which is either
-        //     // RGB or RGBA, where each color has 1 byte.
-        //     if (this.Bpp == 32)
-        //     {
-        //         // Require at leat RGB to be present; and require them to be exactly one byte (8 bits) long.
-        //         if (this.Red.Length != 8
-        //             || this.Blue.Length != 8
-        //             || this.Green.Length != 8)
-        //         {
-        //             throw new ArgumentOutOfRangeException();
-        //         }
+                // Alpha can be present or absent, but must be 8 bytes long
+                if (this.Alpha.Length != 0 && this.Alpha.Length != 8)
+                {
+                    throw new ArgumentOutOfRangeException();
+                }
 
-        //         // Alpha can be present or absent, but must be 8 bytes long
-        //         if (this.Alpha.Length != 0 && this.Alpha.Length != 8)
-        //         {
-        //             throw new ArgumentOutOfRangeException();
-        //         }
+                // Get the index at which the red, bue, green and alpha values are stored.
+                uint redIndex = this.Red.Offset / 8;
+                uint blueIndex = this.Blue.Offset / 8;
+                uint greenIndex = this.Green.Offset / 8;
+                uint alphaIndex = this.Alpha.Offset / 8;
 
-        //         // Get the index at which the red, bue, green and alpha values are stored.
-        //         uint redIndex = this.Red.Offset / 8;
-        //         uint blueIndex = this.Blue.Offset / 8;
-        //         uint greenIndex = this.Green.Offset / 8;
-        //         uint alphaIndex = this.Alpha.Offset / 8;
+                // Loop over the array and re-order as required
+                for (int i = 0; i < buffer.Length; i += 4)
+                {
+                    byte red = buffer[i + redIndex];
+                    byte blue = buffer[i + blueIndex];
+                    byte green = buffer[i + greenIndex];
+                    byte alpha = buffer[i + alphaIndex];
 
-        //         // Loop over the array and re-order as required
-        //         for (int i = 0; i < buffer.Length; i += 4)
-        //         {
-        //             byte red = buffer[i + redIndex];
-        //             byte blue = buffer[i + blueIndex];
-        //             byte green = buffer[i + greenIndex];
-        //             byte alpha = buffer[i + alphaIndex];
+                    // Convert to ARGB. Note, we're on a little endian system,
+                    // so it's really BGRA. Confusing!
+                    if (this.Alpha.Length == 8)
+                    {
+                        buffer[i + 3] = alpha;
+                        buffer[i + 2] = red;
+                        buffer[i + 1] = green;
+                        buffer[i + 0] = blue;
+                    }
+                    else
+                    {
+                        buffer[i + 3] = red;
+                        buffer[i + 2] = green;
+                        buffer[i + 1] = blue;
+                        buffer[i + 0] = 0;
+                    }
+                }
 
-        //             // Convert to ARGB. Note, we're on a little endian system,
-        //             // so it's really BGRA. Confusing!
-        //             if (this.Alpha.Length == 8)
-        //             {
-        //                 buffer[i + 3] = alpha;
-        //                 buffer[i + 2] = red;
-        //                 buffer[i + 1] = green;
-        //                 buffer[i + 0] = blue;
-        //             }
-        //             else
-        //             {
-        //                 buffer[i + 3] = red;
-        //                 buffer[i + 2] = green;
-        //                 buffer[i + 1] = blue;
-        //                 buffer[i + 0] = 0;
-        //             }
-        //         }
+                // Return RGB or RGBA, function of the presence of an alpha channel.
+                if (this.Alpha.Length == 0)
+                {
+                    return PixelFormat.Format32bppRgb;
+                }
+                else
+                {
+                    return PixelFormat.Format32bppArgb;
+                }
+            }
+            else if (this.Bpp == 24)
+            {
+                // For 24-bit image depths, we only support RGB.
+                if (this.Red.Offset == 0
+                    && this.Red.Length == 8
+                    && this.Green.Offset == 8
+                    && this.Green.Length == 8
+                    && this.Blue.Offset == 16
+                    && this.Blue.Length == 8
+                    && this.Alpha.Offset == 24
+                    && this.Alpha.Length == 0)
+                {
+                    return PixelFormat.Format24bppRgb;
+                }
+            }
+            else if (this.Bpp == 16
+                     && this.Red.Offset == 11
+                     && this.Red.Length == 5
+                     && this.Green.Offset == 5
+                     && this.Green.Length == 6
+                     && this.Blue.Offset == 0
+                     && this.Blue.Length == 5
+                     && this.Alpha.Offset == 0
+                     && this.Alpha.Length == 0)
+            {
+                // For 16-bit image depths, we only support Rgb565.
+                return PixelFormat.Format16bppRgb565;
+            }
 
-        //         // Return RGB or RGBA, function of the presence of an alpha channel.
-        //         if (this.Alpha.Length == 0)
-        //         {
-        //             return PixelFormat.Format32bppRgb;
-        //         }
-        //         else
-        //         {
-        //             return PixelFormat.Format32bppArgb;
-        //         }
-        //     }
-        //     else if (this.Bpp == 24)
-        //     {
-        //         // For 24-bit image depths, we only support RGB.
-        //         if (this.Red.Offset == 0
-        //             && this.Red.Length == 8
-        //             && this.Green.Offset == 8
-        //             && this.Green.Length == 8
-        //             && this.Blue.Offset == 16
-        //             && this.Blue.Length == 8
-        //             && this.Alpha.Offset == 24
-        //             && this.Alpha.Length == 0)
-        //         {
-        //             return PixelFormat.Format24bppRgb;
-        //         }
-        //     }
-        //     else if (this.Bpp == 16
-        //              && this.Red.Offset == 11
-        //              && this.Red.Length == 5
-        //              && this.Green.Offset == 5
-        //              && this.Green.Length == 6
-        //              && this.Blue.Offset == 0
-        //              && this.Blue.Length == 5
-        //              && this.Alpha.Offset == 0
-        //              && this.Alpha.Length == 0)
-        //     {
-        //         // For 16-bit image depths, we only support Rgb565.
-        //         return PixelFormat.Format16bppRgb565;
-        //     }
-
-        //     // If not caught by any of the statements before, the format is not supported.
-        //     throw new NotSupportedException();
-        // }
+            // If not caught by any of the statements before, the format is not supported.
+            throw new NotSupportedException();
+        }
     }
 }

@@ -11,8 +11,7 @@ namespace SharpAdbClient
     using System.IO;
     using System.Net;
     using System.Threading;
-    using System.Threading.Tasks;
-    using SixLabors.ImageSharp;
+    using System.Threading.Tasks; 
 
     /// <summary>
     /// A common interface for any class that allows you to interact with the

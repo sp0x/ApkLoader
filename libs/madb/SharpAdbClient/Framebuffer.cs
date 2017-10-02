@@ -2,8 +2,7 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
-using System.Net;
-using SixLabors.ImageSharp;
+using System.Net; 
 
 namespace SharpAdbClient
 {

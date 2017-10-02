@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -108,7 +109,9 @@ namespace coreadb
         public async Task Update(string ip){
             var deviceInfo = GetDevice(ip);
             var device = await ConnectToDevice(deviceInfo);
-            await device.Update(_updateUrl);
+            var result = await device.Update(_updateUrl);
+            Console.WriteLine(result);
+            Console.WriteLine($"Updated: {device.EndPoint}");
         }
 
         public async Task UpdateAll(){

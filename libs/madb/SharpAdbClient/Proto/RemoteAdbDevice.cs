@@ -14,8 +14,6 @@ namespace SharpAdbClient.Proto
     {
 
         public event EventHandler Connected;
-
-        private bool _reading;
         private uint _streamId = 12345;
         private Task _readerTask;
         private TcpSocket _socket;
@@ -115,7 +113,7 @@ namespace SharpAdbClient.Proto
 
         private void StartReading()
         {
-            if (_reading || (_readerTask!=null && !_readerTask.IsCompleted)) return;
+            if ((_readerTask!=null && !_readerTask.IsCompleted)) return;
             _readerTask = new Task(() =>
             {
                 while (true)

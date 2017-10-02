@@ -3,9 +3,7 @@
 // </copyright>
 
 using System.Drawing;
-using System.Drawing.Imaging;
-using SixLabors.ImageSharp;
-using Image = SixLabors.ImageSharp.Image;
+using System.Drawing.Imaging; 
 
 namespace SharpAdbClient
 {

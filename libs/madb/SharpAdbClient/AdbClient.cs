@@ -14,9 +14,7 @@ namespace SharpAdbClient
     using System.Net;
     using System.Text;
     using System.Threading;
-    using System.Threading.Tasks;
-    using SixLabors.ImageSharp.Drawing;
-    using SixLabors.ImageSharp;
+    using System.Threading.Tasks; 
 
     /// <summary>
     /// <para>

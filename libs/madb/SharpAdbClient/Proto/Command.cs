@@ -74,14 +74,14 @@ namespace SharpAdbClient.Proto
         {
             var str = Encoding.ASCII.GetBytes(data);
             this.Data = new byte[data.Length+1];
-            str.CopyTo(this.Data);
+            str.CopyTo(this.Data,0);
         }
 
         public AdbPacket(uint command, uint arg1, uint arg2, byte[] data)
             : this(command, arg1, arg2)
         { 
             this.Data = new byte[data.Length];
-            data.CopyTo(this.Data);
+            data.CopyTo(this.Data,0);
         }
 
         public byte[] ToBuffer()

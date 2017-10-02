@@ -56,11 +56,11 @@ namespace coreadb
             await Execute("rm /smartmodule/SmartModule.apk; rm /etc/CheckInstallPackage.sh; rm /smartmodule/CheckInstallPackage.sh"); 
         }
 
-        public async Task Update(string updateUrl){
+        public async Task<string> Update(string updateUrl){
             await CleanupAppFiles();
             var packageChecker = $"{updateUrl}/CheckInstallPackage-Sigma.sh";
             var result = await Execute($"cd /smartmodule; busybox wget {packageChecker} -O CheckInstallPackage.sh; chmod +x CheckInstallPackage.sh; ./CheckInstallPackage.sh 1");
-            Console.WriteLine(result);
+            return result;
         }
 
         public bool ConnectToAdb(string adbExec = null)

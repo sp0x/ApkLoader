@@ -13,9 +13,7 @@ namespace SharpAdbClient
     using System.Linq;
     using System.Net;
     using System.Text;
-    using SharpAdbClient.Exceptions; 
-    using SixLabors.ImageSharp.Drawing;
-    using SixLabors.ImageSharp;
+    using SharpAdbClient.Exceptions;  
     /// <summary>
     ///
     /// </summary>

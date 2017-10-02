@@ -28,18 +28,25 @@ namespace coreadb
             CommandOption hostname = cli.Option("--host <host>","The host to connect to.",CommandOptionType.SingleValue);
             CommandOption opReboot = cli.Option("-b", "Reboots all devices", CommandOptionType.NoValue);
             CommandOption opRestart = cli.Option("-r", "Restarts all devices", CommandOptionType.NoValue);
-            CommandOption opScreenshot = cli.Option("--scr <devId>", "Grabs a screenshot of the given device", CommandOptionType.SingleValue);
+            CommandOption opNoForward = cli.Option("--no-forward", "Disables forwarding", CommandOptionType.NoValue);
+            CommandOption opScreenshot = cli.Option("--scr <devIp>", "Grabs a screenshot of the given device", CommandOptionType.SingleValue);
+            CommandOption opWatch = cli.Option("--watch <devIp>", "Grabs a screenshot every 5 seconds of the given device", CommandOptionType.SingleValue);
+            CommandOption opUpdate = cli.Option("--update <devIp>" , "Updates the given device", CommandOptionType.SingleValue);
+            CommandOption opUpdateAll = cli.Option("--update-all" , "Updates all devices", CommandOptionType.NoValue);
             //            CommandOption uppercase = cli.Option("-u | --uppercase", "Display the greeting in uppercase.",
             //                CommandOptionType.NoValue);
             cli.HelpOption("-? | --help"); 
             cli.OnExecute(() =>
             {
                 Startup(hostname.Value());
+                if(opNoForward.HasValue()) _manager.DisableForwarding();
                 if (opReboot.HasValue()) _manager.RebootAll();
                 else if (opRestart.HasValue()) _manager.RestartAll();
                 else if (opScreenshot.HasValue()) _manager.Screenshot(opScreenshot.Value());
-                
-                var x = 123;
+                else if (opWatch.HasValue()) _manager.Watch(opWatch.Value());
+                else if (opUpdate.HasValue()) _manager.Update(opUpdate.Value());
+                else if (opUpdateAll.HasValue()) _manager.UpdateAll();
+                 
                 return 0;
             }); 
             var res = cli.Execute(args);

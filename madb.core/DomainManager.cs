@@ -14,26 +14,40 @@ namespace coreadb
         private IConfigurationRoot _config;
         private MySqlConnection _dbConnection;
         public Dictionary<string, SmDevice> ConnectedDevices { get; private set; }
+        private bool _shouldForward;
+        private string _updateUrl;
 
         public DomainManager(IConfigurationRoot config, AdbManager manager, NetworkManager netManager)
         {
+            _shouldForward=true;
             ConnectedDevices = new Dictionary<string, SmDevice>();
             _config = config;
             _manager = manager;
             _netManager = netManager;
             //Setup db config
+            var updateSection = config.GetSection("update");
+            _updateUrl = updateSection["sigma_base_url"];
             var dbSection = config.GetSection("db");
             var user = dbSection["user"];
             var pass = dbSection["pass"];
             var database = dbSection["database"];
+            var host = dbSection["host"];
+            host = !string.IsNullOrEmpty(host) ? host : _netManager.TargetHost.ToString();
             var isSecure = dbSection["secure"]!=null;
             var secureSuffix = isSecure ? "" : ";SslMode=none";
+            var timeout = ";Connection Timeout=15";
+            var constr =
+                $"server={host};user id={user};password={pass};persistsecurityinfo=True;port=3306;database={database}{secureSuffix}{timeout}";
             _dbConnection = new MySqlConnection()
             {
-                ConnectionString =
-                    $"server={_netManager.TargetHost};user id={user};password={pass};persistsecurityinfo=True;port=3306;database={database}{secureSuffix}"
+                ConnectionString = constr
+                
             };
+            
             _dbConnection.Open();
+        }
+        public void DisableForwarding(){
+            _shouldForward = false;
         }
 
         private void NoticeDevice(SmDevice newDevice)
@@ -45,70 +59,96 @@ namespace coreadb
             
         }
 
-        public async void RebootAll()
+        public async Task RebootAll()
         {
             var rebootBuff = new BufferBlock<SmDeviceInfo>();
-            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(CreateDevice));
-            var rebootBlock = new ActionBlock<SmDevice>(x =>
-            {
-                if (x != null)
-                {
-                    //_manager.Screenshot(x, "scrfile.png");
-                    x.Reboot();
-                    //x.ConnectToAdb();
-                }
-            }); 
+            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice));
+            var rebootBlock = new ActionBlock<SmDevice>(x => x?.Reboot()); 
             rebootBuff.LinkTo(connectorBlock, new DataflowLinkOptions {PropagateCompletion = true});
             connectorBlock.LinkTo(rebootBlock, new DataflowLinkOptions {PropagateCompletion = true});
-            foreach (var device in GetDevices().Take(1))
+            foreach (var device in GetDevices())
             {
                 rebootBuff.Post(device);
             }
             rebootBuff.Complete();
-            //await rebootBlock.Completion;
+            await rebootBlock.Completion;
         }
-        public async void RestartAll()
+        public async Task RestartAll()
         {
             var rebootBuff = new BufferBlock<SmDeviceInfo>();
-            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(CreateDevice));
-            var rebootBlock = new ActionBlock<SmDevice>(x =>
-            {
-                if (x != null)
-                {
-                    //_manager.Screenshot(x, "scrfile.png");
-                    x.KillSmApp();
-                    //x.ConnectToAdb();
-                }
-            });
+            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice));
+            var rebootBlock = new ActionBlock<SmDevice>(x => x?.KillSmApp());
             rebootBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
             connectorBlock.LinkTo(rebootBlock, new DataflowLinkOptions { PropagateCompletion = true });
-            foreach (var device in GetDevices().Take(1))
+            foreach (var device in GetDevices())
             {
                 rebootBuff.Post(device);
             }
             rebootBuff.Complete();
-            //await rebootBlock.Completion;
+            await rebootBlock.Completion;
         }
 
-        public async void Screenshot(string id)
+        public async Task Screenshot(string id)
         {
             var deviceInfo = GetDevice(id);
             var device = await CreateDevice(deviceInfo);
             _manager.Screenshot(device, $"{id}.png");
         }
 
-        private async Task<SmDevice> ConnectToDevice(SmDeviceInfo arg)
+        public async Task Watch(string id, int interval = 5000)
         {
-            var port = _netManager.Forward(arg.Ip, 5555);
-            var device = await _manager.ConnectDevice("127.0.0.1", port);
+            var deviceInfo = GetDevice(id);
+            var device = await CreateDevice(deviceInfo);
+            while(true){
+                _manager.Screenshot(device, $"{id}.png");
+                await Task.Delay(interval);
+            }
+        }
+
+        public async Task Update(string ip){
+            var deviceInfo = GetDevice(ip);
+            var device = await ConnectToDevice(deviceInfo);
+            await device.Update(_updateUrl);
+        }
+
+        public async Task UpdateAll(){
+            var updateBuff = new BufferBlock<SmDeviceInfo>();
+            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice));
+            var updaterBlock = new ActionBlock<SmDevice>(x => x?.Update(_updateUrl)); 
+            updateBuff.LinkTo(connectorBlock, new DataflowLinkOptions {PropagateCompletion = true});
+            connectorBlock.LinkTo(updaterBlock, new DataflowLinkOptions {PropagateCompletion = true});
+            foreach (var device in GetDevices())
+            {
+                updateBuff.Post(device);
+            }
+            updateBuff.Complete();
+            await updaterBlock.Completion;
+        }
+
+        private async Task<SmDevice> ConnectToDevice(SmDeviceInfo info)
+        {
+            SmDevice device = null;
+            if(_shouldForward){
+                var port = _netManager.Forward(info.Ip, 5555);
+                device = await _manager.ConnectDevice("127.0.0.1", port);
+            }else{
+                uint port = 5555;
+                device = await _manager.ConnectDevice(info.Ip, port);
+            } 
             NoticeDevice(device);
             return device;
         }
 
         private async Task<SmDevice> CreateDevice(SmDeviceInfo info)
         {
-            var port = _netManager.Forward(info.Ip, 5555);
-            var device = _manager.CreateDevice("127.0.0.1", port);
+            SmDevice device = null;
+            if(_shouldForward){
+                var port = _netManager.Forward(info.Ip, 5555);
+                device = _manager.CreateDevice("127.0.0.1", port);
+            }else{
+                uint port = 5555;
+                device = _manager.CreateDevice(info.Ip, port);
+            }
             NoticeDevice(device);
             return device;
         }

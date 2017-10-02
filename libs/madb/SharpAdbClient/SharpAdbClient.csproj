@@ -44,9 +44,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\ImageSharp\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
-    <ProjectReference Include="..\..\ImageSharp\src\ImageSharp\ImageSharp.csproj" />
+  <ItemGroup> 
   </ItemGroup>
 
 </Project>

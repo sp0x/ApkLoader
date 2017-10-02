@@ -8,14 +8,15 @@ namespace coreadb
 {
     public static class Extensions
     {
-        public static string ExecuteCommand(this string cmd, string winArguments)
+        public static string ExecuteCommand(this string cmd, string arguments)
         {
-            var escapedArgs = cmd.Replace("\"", "\\\"");
+            var escapedArgs = arguments.Replace("\"", "\\\"");
             var binary = "";
             Process process = null;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 binary = "/bin/bash";
+                escapedArgs = cmd + escapedArgs;
                 process = new Process()
                 {
                     StartInfo = new ProcessStartInfo
@@ -35,7 +36,7 @@ namespace coreadb
                     StartInfo = new ProcessStartInfo
                     {
                         FileName = cmd,
-                        Arguments = winArguments,
+                        Arguments = arguments,
                         RedirectStandardOutput = true,
                         UseShellExecute = false,
                         CreateNoWindow = true

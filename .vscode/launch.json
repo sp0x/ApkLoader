@@ -11,8 +11,12 @@
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceRoot}/madb.core/bin/Debug/netcoreapp2.0/coreadb.dll",
-            "args": [],
-            "cwd": "${workspaceRoot}",
+            "args": [
+                "--no-forward", 
+                "--watch",
+                "10.10.20.150"
+            ],
+            "cwd": "${workspaceRoot}/madb.core/bin/Debug/netcoreapp2.0",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
             "console": "internalConsole",
             "stopAtEntry": false,

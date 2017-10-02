@@ -51,7 +51,15 @@ namespace coreadb
             foreach (var dev in AdbClient.Instance.GetDevices())
             {
                 var serial = dev.Serial;
-                _deviceList[serial] = dev;
+                try
+                {
+                    _deviceList[serial] = dev;
+                }
+                catch (Exception ex)
+                {
+                    
+                }
+                
             }
         }
 

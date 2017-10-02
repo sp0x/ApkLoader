@@ -131,7 +131,7 @@ namespace SharpAdbClient.Proto
         private void OnPacket(AdbPacket packet)
         {
             _lastPacket = packet==null ? _lastPacket : packet;
-            Debug.WriteLine($"Received command {_lastPacket}");
+            //Debug.WriteLine($"Received command {_lastPacket}");
             if (_lastPacket.Command == Command.CNXN)
             {
                 HostVersion = _lastPacket.arg1;

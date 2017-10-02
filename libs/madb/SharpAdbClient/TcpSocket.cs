@@ -92,9 +92,7 @@ namespace SharpAdbClient
         }
         /// <inheritdoc/>
         public int Send(byte[] buffer)
-        {
-            var bufstr = System.Text.Encoding.UTF8.GetString(buffer).Replace("\0","");
-            Debug.WriteLine(bufstr);
+        { 
             return this.socket.Send(buffer);
         }
 

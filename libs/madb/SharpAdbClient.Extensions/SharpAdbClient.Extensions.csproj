@@ -1,7 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <ProjectReference Include="..\..\ImageSharp\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj" />
-    <ProjectReference Include="..\..\ImageSharp\src\ImageSharp\ImageSharp.csproj" />
+  <ItemGroup> 
     <ProjectReference Include="..\SharpAdbClient\SharpAdbClient.csproj" /> 
   </ItemGroup>
   <PropertyGroup> 

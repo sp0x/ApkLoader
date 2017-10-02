@@ -52,8 +52,22 @@ namespace coreadb
             KillProcess("com.intellitis.smartmodule.screens");
         }
 
-        public bool ConnectToAdb(string adbExec = @"D:\SDK\android-win\platform-tools\adb.exe")
+        public async Task CleanupAppFiles(){
+            await Execute("rm /smartmodule/SmartModule.apk; rm /etc/CheckInstallPackage.sh; rm /smartmodule/CheckInstallPackage.sh"); 
+        }
+
+        public async Task Update(string updateUrl){
+            await CleanupAppFiles();
+            var packageChecker = $"{updateUrl}/CheckInstallPackage-Sigma.sh";
+            var result = await Execute($"cd /smartmodule; busybox wget {packageChecker} -O CheckInstallPackage.sh; chmod +x CheckInstallPackage.sh; ./CheckInstallPackage.sh 1");
+            Console.WriteLine(result);
+        }
+
+        public bool ConnectToAdb(string adbExec = null)
         {
+            if(adbExec==null){
+                adbExec = AdbManager.GetAdbPath();
+            }
             if (_adbConnected) return true;
             var command = adbExec;
             var returned = command.ExecuteCommand($" connect {_device.EndPoint}")?.Trim();

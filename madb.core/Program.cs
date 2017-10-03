@@ -33,6 +33,9 @@ namespace coreadb
             CommandOption opWatch = cli.Option("--watch <devIp>", "Grabs a screenshot every 5 seconds of the given device", CommandOptionType.SingleValue);
             CommandOption opUpdate = cli.Option("--update <devIp>" , "Updates the given device", CommandOptionType.SingleValue);
             CommandOption opUpdateAll = cli.Option("--update-all" , "Updates all devices", CommandOptionType.NoValue);
+            CommandOption opTouch = cli.Option("-t <ip> <x> <y>", "Sends a touch event", CommandOptionType.MultipleValue);
+            CommandOption opVerbose=  cli.Option("-v", "Turns on verbose mode", CommandOptionType.NoValue);
+
             //            CommandOption uppercase = cli.Option("-u | --uppercase", "Display the greeting in uppercase.",
             //                CommandOptionType.NoValue);
             cli.HelpOption("-? | --help"); 
@@ -40,13 +43,14 @@ namespace coreadb
             {
                 Startup(hostname.Value());
                 if(opNoForward.HasValue()) _manager.DisableForwarding();
+                if(opVerbose.HasValue()) _manager.EnableVerbouseMode();
                 if (opReboot.HasValue()) _manager.RebootAll();
                 else if (opRestart.HasValue()) _manager.RestartAll();
                 else if (opScreenshot.HasValue()) _manager.Screenshot(opScreenshot.Value());
                 else if (opWatch.HasValue()) _manager.Watch(opWatch.Value());
                 else if (opUpdate.HasValue()) _manager.Update(opUpdate.Value());
                 else if (opUpdateAll.HasValue()) _manager.UpdateAll();
-                 
+                else if (opTouch.HasValue()) _manager.Touch(opTouch.Values[0], int.Parse(opTouch.Values[1]), int.Parse(opTouch.Values[2]));
                 return 0;
             }); 
             var res = cli.Execute(args);

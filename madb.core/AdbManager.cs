@@ -138,10 +138,10 @@ namespace coreadb
         }
 
 
-        public async Task<SmDevice> ConnectDevice(string s, uint port)
+        public async Task<SmDevice> ConnectDevice(string s, uint port, bool verboseMode = false)
         {
             var adbClient = AdbClient.Instance;
-            RemoteAdbDevice remoteDev = await RemoteAdbDevice.Factory.Create(s, port);
+            RemoteAdbDevice remoteDev = await RemoteAdbDevice.Factory.Create(s, port, verboseMode);
             var smDevice = new SmDevice(remoteDev);
             return smDevice;
         }

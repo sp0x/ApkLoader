@@ -16,10 +16,12 @@ namespace coreadb
         private MySqlConnection _dbConnection;
         public Dictionary<string, SmDevice> ConnectedDevices { get; private set; }
         private bool _shouldForward;
+        private bool _verbose;
         private string _updateUrl;
 
         public DomainManager(IConfigurationRoot config, AdbManager manager, NetworkManager netManager)
         {
+            _verbose = false;
             _shouldForward=true;
             ConnectedDevices = new Dictionary<string, SmDevice>();
             _config = config;
@@ -51,6 +53,10 @@ namespace coreadb
             _shouldForward = false;
         }
 
+        public void EnableVerbouseMode(){
+            _verbose = true;
+        }
+
         private void NoticeDevice(SmDevice newDevice)
         {
             if (newDevice != null && newDevice.Ip!=null)
@@ -76,16 +82,19 @@ namespace coreadb
         }
         public async Task RestartAll()
         {
-            var rebootBuff = new BufferBlock<SmDeviceInfo>();
+            var restartBuff = new BufferBlock<SmDeviceInfo>();
             var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice));
-            var rebootBlock = new ActionBlock<SmDevice>(x => x?.KillSmApp());
-            rebootBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            var rebootBlock = new ActionBlock<SmDevice>(x => {
+                var ret = x?.KillSmApp().Result;
+                Console.WriteLine($"{x.EndPoint} Restarted app: {ret}");
+            });
+            restartBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
             connectorBlock.LinkTo(rebootBlock, new DataflowLinkOptions { PropagateCompletion = true });
             foreach (var device in GetDevices())
             {
-                rebootBuff.Post(device);
+                restartBuff.Post(device);
             }
-            rebootBuff.Complete();
+            restartBuff.Complete();
             await rebootBlock.Completion;
         }
 
@@ -102,6 +111,7 @@ namespace coreadb
             var device = await CreateDevice(deviceInfo);
             while(true){
                 _manager.Screenshot(device, $"{id}.png");
+                Console.WriteLine($"{DateTime.Now} Taken screenshot");
                 await Task.Delay(interval);
             }
         }
@@ -128,15 +138,22 @@ namespace coreadb
             await updaterBlock.Completion;
         }
 
+        public async Task Touch(string ip, int x, int y){
+            var deviceInfo = GetDevice(ip);
+            var device = await ConnectToDevice(deviceInfo);
+            var result = await device.Touch(x, y);
+            Console.WriteLine(result);
+        }
+
         private async Task<SmDevice> ConnectToDevice(SmDeviceInfo info)
         {
             SmDevice device = null;
             if(_shouldForward){
                 var port = _netManager.Forward(info.Ip, 5555);
-                device = await _manager.ConnectDevice("127.0.0.1", port);
+                device = await _manager.ConnectDevice("127.0.0.1", port, _verbose);
             }else{
                 uint port = 5555;
-                device = await _manager.ConnectDevice(info.Ip, port);
+                device = await _manager.ConnectDevice(info.Ip, port, _verbose);
             } 
             NoticeDevice(device);
             return device;

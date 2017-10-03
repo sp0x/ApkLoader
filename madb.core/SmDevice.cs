@@ -42,14 +42,18 @@ namespace coreadb
             Execute("busybox reboot");
         }
 
-        public async void KillProcess(string name)
+        public async Task<string> KillProcess(string name)
         {
-            await Execute($"busybox pkill -9 {name}");
+            return await Execute($"busybox pkill -9 {name}");
         }
 
-        public async void KillSmApp()
+        public async Task<string> KillSmApp()
         {
-            KillProcess("com.intellitis.smartmodule.screens");
+            return await KillProcess("com.intellitis.smartmodule.screens*");
+        }
+
+        public async Task<string> Touch(int x, int y){
+            return await _device.Touch(x, y);
         }
 
         public async Task CleanupAppFiles(){

@@ -127,7 +127,12 @@ namespace coreadb
         public async Task UpdateAll(){
             var updateBuff = new BufferBlock<SmDeviceInfo>();
             var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice));
-            var updaterBlock = new ActionBlock<SmDevice>(x => x?.Update(_updateUrl)); 
+            var updaterBlock = new ActionBlock<SmDevice>(x => {
+                x?.Update(_updateUrl).ContinueWith((t)=>{
+                    var str = x.EndPoint;
+                    Console.WriteLine($"Updated {str}");
+                });
+            }); 
             updateBuff.LinkTo(connectorBlock, new DataflowLinkOptions {PropagateCompletion = true});
             connectorBlock.LinkTo(updaterBlock, new DataflowLinkOptions {PropagateCompletion = true});
             foreach (var device in GetDevices())

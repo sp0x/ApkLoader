@@ -13,8 +13,8 @@
             "program": "${workspaceRoot}/madb.core/bin/Debug/netcoreapp2.0/coreadb.dll",
             "args": [
                 "--no-forward", 
-                "--watch",
-                "10.10.20.150"
+                "-v",
+                "--touch", "10.10.20.150,300,800"
             ],
             "cwd": "${workspaceRoot}/madb.core/bin/Debug/netcoreapp2.0",
             // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window

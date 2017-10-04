@@ -34,7 +34,7 @@ namespace SharpAdbClient.Proto
         public IPEndPoint EndPoint { get; private set; }
         public Dictionary<uint, AdbStream> OpenStreams { get; private set; }
         private CancellationToken _readCancellation;
-
+        public bool PrintMessages {get;set;}
 
         public RemoteAdbDevice(IPEndPoint endpoint, CancellationToken? cancellationToken = null)
             : this(cancellationToken)
@@ -111,6 +111,12 @@ namespace SharpAdbClient.Proto
             return output;
         }
 
+        public async Task<string> Touch(int x, int y){
+            var touch = SharpAdbClient.Proto.Touch.CreateTouch(x,y);
+            var result = await Execute(touch);
+            return result;
+        }
+
         private void StartReading()
         {
             if ((_readerTask!=null && !_readerTask.IsCompleted)) return;
@@ -129,7 +135,14 @@ namespace SharpAdbClient.Proto
         private void OnPacket(AdbPacket packet)
         {
             _lastPacket = packet==null ? _lastPacket : packet;
-            //Debug.WriteLine($"Received command {_lastPacket}");
+            if(PrintMessages){
+                Console.WriteLine($"Received command {_lastPacket}");
+            }else{
+                #if DEBUG
+                Debug.WriteLine($"Received command {_lastPacket}");
+                #endif
+            }
+            
             if (_lastPacket.Command == Command.CNXN)
             {
                 HostVersion = _lastPacket.arg1;
@@ -218,9 +231,10 @@ namespace SharpAdbClient.Proto
 
         public class Factory
         {
-            public static async Task<RemoteAdbDevice> Create(string host, uint port)
+            public static async Task<RemoteAdbDevice> Create(string host, uint port, bool verboseMode = false)
             {
                 var remotedev = new RemoteAdbDevice();
+                remotedev.PrintMessages = verboseMode;
                 //var cmdOpen = Command.CreateOpenCommand();
 
                 //adbClient.Connect(endpoint);

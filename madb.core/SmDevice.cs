@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
@@ -11,7 +12,7 @@ namespace coreadb
 {
     public class SmDeviceInfo
     {
-        public string Ip { get; private set; }
+        public string Ip { get; set; }
         public SmDeviceInfo(string ip)
         {
             this.Ip = ip;
@@ -112,6 +113,26 @@ namespace coreadb
         public async Task<string> Execute(string command)
         {
             return await _device.Execute(command);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="updateSums"></param>
+        /// <returns></returns>
+        public IDictionary<string, bool> VerifyFiles(Dictionary<string, string> updateSums)
+        {
+            var basePath = "/smartmodule/"; 
+            var filenames = updateSums.Keys;
+            var output = new ConcurrentDictionary<string, bool>();
+            var result = Parallel.ForEach(filenames, path =>
+            {
+                var fullPath = $"{basePath}{path}"; 
+                var sum = _device.FileChecksum(fullPath).Result;
+                var isValid = sum == updateSums[path];
+                output[path] = isValid;
+            });
+            return output;
         }
     }
 }

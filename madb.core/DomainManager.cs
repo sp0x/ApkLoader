@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Security.Cryptography;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +22,7 @@ namespace coreadb
         private bool _shouldForward;
         private bool _verbose;
         private string _updateUrl;
+        private Dictionary<string[], string> _updateSums;
 
         public DomainManager(IConfigurationRoot config, AdbManager manager, NetworkManager netManager)
         {
@@ -30,6 +35,7 @@ namespace coreadb
             //Setup db config
             var updateSection = config.GetSection("update");
             _updateUrl = updateSection["sigma_base_url"];
+            _updateSums = new Dictionary<string[], string>();
             var dbSection = config.GetSection("db");
             var user = dbSection["user"];
             var pass = dbSection["pass"];
@@ -46,8 +52,8 @@ namespace coreadb
                 ConnectionString = constr
                 
             };
-            
             _dbConnection.Open();
+            CalculateUpdateChecksums();
         }
         public void DisableForwarding(){
             _shouldForward = false;
@@ -116,6 +122,29 @@ namespace coreadb
             }
         }
 
+        private void CalculateUpdateChecksums()
+        {
+            var files = new string[][] {
+                new string[]{"SmartModule_Sigma.apk" , "SmartModule.apk" }
+            };
+            var sums = new Dictionary<string[], string>();
+            foreach (var file in files)
+            {
+                var fileUrl = $"{_updateUrl}/{file[0]}";
+                var request = WebRequest.Create(fileUrl);
+                var response = request.GetResponse();
+                using (var stream = response.GetResponseStream())
+                {
+                    using (var md5 = MD5.Create())
+                    { 
+                        var md5Sum = BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", string.Empty).ToLower();
+                        sums.Add(file, md5Sum);
+                    }
+                }
+            }
+            _updateSums = sums;
+        }
+
         public async Task Update(string ip){
             var deviceInfo = GetDevice(ip);
             var device = await ConnectToDevice(deviceInfo);
@@ -159,7 +188,8 @@ namespace coreadb
             }else{
                 uint port = 5555;
                 device = await _manager.ConnectDevice(info.Ip, port, _verbose);
-            } 
+            }
+            if(device!=null) device.Ip = info.Ip;
             NoticeDevice(device);
             return device;
         }
@@ -205,6 +235,46 @@ namespace coreadb
             }
             return null;
         }
-
+        private int _capacity = 50;
+        public async Task VerifyUpdates()
+        {
+            var options = new ExecutionDataflowBlockOptions { BoundedCapacity = _capacity};
+            var updateBuff = new BufferBlock<SmDeviceInfo>(options);
+            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice), options);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var passed = 0;
+            var devices = GetDevices().ToArray();
+            var validatorBlock = new ActionBlock<SmDevice>(x =>
+            {
+                var newSums = new Dictionary<string, string>();
+                foreach (var pair in _updateSums) newSums.Add(pair.Key[1], pair.Value);
+                var results = x?.VerifyFiles(newSums);
+                Interlocked.Increment(ref passed);
+                var perc = 100.0d * ((double)passed / (double)devices.Length);
+                if (results != null)
+                {
+                    var hasOldFiles = results.Values.Any(f => !f); 
+                    Console.WriteLine($"{perc:0.00}%[{(hasOldFiles ? "old" : "cur")}] {x.Ip}");
+                }
+                
+            }, new ExecutionDataflowBlockOptions{ BoundedCapacity = _capacity, MaxDegreeOfParallelism = 20 });
+            updateBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            connectorBlock.LinkTo(validatorBlock, new DataflowLinkOptions { PropagateCompletion = true }); 
+            foreach (var device in devices)
+            {
+                var posted = false;
+                while (!posted)
+                {
+                    posted = updateBuff.SendAsync(device).Result;
+                }
+            }
+            Console.WriteLine($"Processing devices: {devices.Length}");
+            updateBuff.Complete();
+            await validatorBlock.Completion;
+            watch.Stop();
+            var timeSpent = watch.Elapsed.TotalSeconds;
+            var perDevice = timeSpent / devices.Length;
+            Console.WriteLine($"Spent total {timeSpent:0.000} with {perDevice:0.000}");
+        }
     } 
 }

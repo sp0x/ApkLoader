@@ -4,6 +4,7 @@ using SharpAdbClient;
 using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Configuration;
 using Renci.SshNet;
@@ -18,7 +19,7 @@ namespace coreadb
         private static NetworkManager _netManager;
         private static DomainManager _manager;
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             // Program.exe <-g|--greeting|-$ <greeting>> [name <fullname>]
             // [-?|-h|--help] [-u|--uppercase]
@@ -35,6 +36,7 @@ namespace coreadb
             CommandOption opUpdateAll = cli.Option("--update-all" , "Updates all devices", CommandOptionType.NoValue);
             CommandOption opTouch = cli.Option("--touch <ip>,<x>,<y>", "Sends a touch event", CommandOptionType.MultipleValue);
             CommandOption opVerbose=  cli.Option("-v", "Turns on verbose mode", CommandOptionType.NoValue);
+            CommandOption opVerifyUpdate =  cli.Option("--vu", "Verifies devices are with the latest versions available.", CommandOptionType.NoValue);
 
             //            CommandOption uppercase = cli.Option("-u | --uppercase", "Display the greeting in uppercase.",
             //                CommandOptionType.NoValue);
@@ -44,25 +46,26 @@ namespace coreadb
                 Startup(hostname.Value());
                 if(opNoForward.HasValue()) _manager.DisableForwarding();
                 if(opVerbose.HasValue()) _manager.EnableVerbouseMode();
-                if (opReboot.HasValue()) _manager.RebootAll();
-                else if (opRestart.HasValue()) _manager.RestartAll();
-                else if (opScreenshot.HasValue()) _manager.Screenshot(opScreenshot.Value());
-                else if (opWatch.HasValue()) _manager.Watch(opWatch.Value());
-                else if (opUpdate.HasValue()) _manager.Update(opUpdate.Value());
-                else if (opUpdateAll.HasValue()) _manager.UpdateAll();
+                if (opReboot.HasValue()) _manager.RebootAll().Wait();
+                else if (opRestart.HasValue()) _manager.RestartAll().Wait();
+                else if (opScreenshot.HasValue()) _manager.Screenshot(opScreenshot.Value()).Wait();
+                else if (opWatch.HasValue()) _manager.Watch(opWatch.Value()).Wait();
+                else if (opUpdate.HasValue()) _manager.Update(opUpdate.Value()).Wait();
+                else if (opUpdateAll.HasValue()) _manager.UpdateAll().Wait();
+                else if (opVerifyUpdate.HasValue()) _manager.VerifyUpdates().Wait();
                 else if (opTouch.HasValue()) {
                     var touchVal = opTouch.Value().Split(',');
-                    _manager.Touch(touchVal[0], int.Parse(touchVal[1]), int.Parse(touchVal[2]));
+                    _manager.Touch(touchVal[0], int.Parse(touchVal[1]), int.Parse(touchVal[2])).Wait();
                 }
                 return 0;
             }); 
             var res = cli.Execute(args);
-            while (true)
-            {
-                var input = Console.ReadLine() + "\r\n";
-                SmDevice fdevice = _manager.ConnectedDevices.Values.First();
-                fdevice.Execute(input);
-            }
+//            while (true)
+//            {
+//                var input = Console.ReadLine() + "\r\n";
+//                SmDevice fdevice = _manager.ConnectedDevices.Values.First();
+//                fdevice.Execute(input).Wait();
+//            }
         } 
 
        

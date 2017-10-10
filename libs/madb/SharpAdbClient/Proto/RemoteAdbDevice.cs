@@ -96,6 +96,13 @@ namespace SharpAdbClient.Proto
             file.Flush();
         }
 
+        public async Task<string> FileChecksum(string fullPath)
+        {
+            var response = await Execute($"busybox md5sum {fullPath}");
+            var elements = response.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return elements[0];
+        }
+
         public async Task<String> Execute(string command)
         {
             var stream = await CreateStream($"shell:{command}");
@@ -249,5 +256,6 @@ namespace SharpAdbClient.Proto
             OpenStreams.Clear();
             _socket.Dispose();
         }
+
     }
 }

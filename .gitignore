@@ -6,3 +6,5 @@ bin/
 /madb.core/keys/key.pub
 */bin/Debug
 **.png
+/.vs/coreadb/v15/sqlite3/storage.ide
+/.vs/coreadb/v15/.suo

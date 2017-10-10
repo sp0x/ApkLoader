@@ -2,7 +2,7 @@
   "profiles": {
     "coreadb": {
       "commandName": "Project",
-      "commandLineArgs": "--scr 10.10.20.150"
+      "commandLineArgs": "--host 212.70.148.27 --vu"
     }
   }
 }

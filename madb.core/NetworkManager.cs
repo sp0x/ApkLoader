@@ -24,7 +24,8 @@ namespace coreadb
             if (!string.IsNullOrEmpty(targetHost)) _targetHost = targetHost;
 
             _targetHostUser = _config["targetHostUser"];
-            _privateKey = new PrivateKeyFile(_config["privateKey"]);
+            var s = _config["privateKey"];
+            _privateKey = new PrivateKeyFile(s);
 
             //Create tunnel
             _connection = new ConnectionInfo(_targetHost,
@@ -50,7 +51,7 @@ namespace coreadb
             };
             _client.AddForwardedPort(newPort);
             newPort.Start();
-            Console.WriteLine($"Forwarded {rndPort}->{host}:{port}");
+            //Console.WriteLine($"Forwarded {rndPort}->{host}:{port}");
             return rndPort;
         }
     }

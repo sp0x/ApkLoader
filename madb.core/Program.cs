@@ -26,17 +26,20 @@ namespace coreadb
             CommandLineApplication cli = new CommandLineApplication(throwOnUnexpectedArg: true);
             CommandArgument names = null; 
             
-            CommandOption hostname = cli.Option("--host <host>","The host to connect to.",CommandOptionType.SingleValue);
+            CommandOption hostname = cli.Option("--host <host>", "The host to connect to." ,CommandOptionType.SingleValue);
             CommandOption opReboot = cli.Option("-b", "Reboots all devices", CommandOptionType.NoValue);
-            CommandOption opRestart = cli.Option("-r", "Restarts all devices", CommandOptionType.NoValue);
+            CommandOption opRestart = cli.Option("-r", "Restarts all apps", CommandOptionType.NoValue);
+            CommandOption opRestartFloor = cli.Option("--rf <floor>", "Restarts all apps on floor", CommandOptionType.SingleValue);
             CommandOption opNoForward = cli.Option("--no-forward", "Disables forwarding", CommandOptionType.NoValue);
             CommandOption opScreenshot = cli.Option("--scr <devIp>", "Grabs a screenshot of the given device", CommandOptionType.SingleValue);
             CommandOption opWatch = cli.Option("--watch <devIp>", "Grabs a screenshot every 5 seconds of the given device", CommandOptionType.SingleValue);
             CommandOption opUpdate = cli.Option("--update <devIp>" , "Updates the given device", CommandOptionType.SingleValue);
+            CommandOption opUpdateFloor = cli.Option("--update-floor <floorNumber>", "Updates the given floor", CommandOptionType.SingleValue);
             CommandOption opUpdateAll = cli.Option("--update-all" , "Updates all devices", CommandOptionType.NoValue);
             CommandOption opTouch = cli.Option("--touch <ip>,<x>,<y>", "Sends a touch event", CommandOptionType.MultipleValue);
             CommandOption opVerbose=  cli.Option("-v", "Turns on verbose mode", CommandOptionType.NoValue);
             CommandOption opVerifyUpdate =  cli.Option("--vu", "Verifies devices are with the latest versions available.", CommandOptionType.NoValue);
+            CommandOption opVerifyUpdateFloor =  cli.Option("--vuf", "Verifies devices on given floor are with the latest versions available.", CommandOptionType.SingleValue);
 
             //            CommandOption uppercase = cli.Option("-u | --uppercase", "Display the greeting in uppercase.",
             //                CommandOptionType.NoValue);
@@ -47,12 +50,23 @@ namespace coreadb
                 if(opNoForward.HasValue()) _manager.DisableForwarding();
                 if(opVerbose.HasValue()) _manager.EnableVerbouseMode();
                 if (opReboot.HasValue()) _manager.RebootAll().Wait();
-                else if (opRestart.HasValue()) _manager.RestartAll().Wait();
+                else if (opRestart.HasValue()) _manager.ResetAll(_manager.GetDevices().ToArray()).Wait();
+                else if (opRestartFloor.HasValue()) _manager.ResetAllFloor(opRestartFloor.Value()).Wait();
                 else if (opScreenshot.HasValue()) _manager.Screenshot(opScreenshot.Value()).Wait();
                 else if (opWatch.HasValue()) _manager.Watch(opWatch.Value()).Wait();
                 else if (opUpdate.HasValue()) _manager.Update(opUpdate.Value()).Wait();
-                else if (opUpdateAll.HasValue()) _manager.UpdateAll().Wait();
-                else if (opVerifyUpdate.HasValue()) _manager.VerifyUpdates().Wait();
+                else if (opUpdateFloor.HasValue()) _manager.UpdateFloor(opUpdateFloor.Value()).Wait();
+                else if (opUpdateAll.HasValue()) _manager.UpdateAll(_manager.GetDevices().ToArray()).Wait();
+                else if (opVerifyUpdate.HasValue())
+                {
+                    _manager.VerifyUpdates(_manager.GetDevices().ToArray()).Wait();
+                    Console.ReadLine();
+                }
+                else if (opVerifyUpdateFloor.HasValue())
+                {
+                    _manager.VerifyUpdatesOnFloor(opVerifyUpdateFloor.Value()).Wait();
+                    Console.ReadLine();
+                }
                 else if (opTouch.HasValue()) {
                     var touchVal = opTouch.Value().Split(',');
                     _manager.Touch(touchVal[0], int.Parse(touchVal[1]), int.Parse(touchVal[2])).Wait();

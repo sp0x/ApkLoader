@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -36,14 +37,14 @@ namespace coreadb
         {
             var dev = args.Device;
             CacheDeviceList();
-            Console.WriteLine($"Device connected {dev.Name}[{dev.Model}/{dev.Serial}]"); 
+            Debug.WriteLine($"Device connected {dev.Name}[{dev.Model}/{dev.Serial}]"); 
             //EchoTest(args.Device.Serial);
         }
 
         private void OnDeviceDisconnected(object sender, DeviceDataEventArgs args)
         {
             var dev = args.Device;
-            Console.WriteLine($"Device disconnected {dev.Name}[{dev.Model}/{dev.Serial}]");
+            Debug.WriteLine($"Device disconnected {dev.Name}[{dev.Model}/{dev.Serial}]");
         }
 
         private void CacheDeviceList()
@@ -152,6 +153,7 @@ namespace coreadb
             device.ConnectToAdb();
             var deviceData = GetDeviceData(serial);
             var adbDev = new Device(deviceData);
+            Console.WriteLine($"Fetching screenshot from {serial} .."); 
             var screen = adbDev.Screenshot;
             screen.Save(filename);
         }

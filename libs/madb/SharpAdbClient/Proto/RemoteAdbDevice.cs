@@ -131,7 +131,14 @@ namespace SharpAdbClient.Proto
             {
                 while (true)
                 {
-                    ReceivePacket().Wait();
+                    try
+                    {
+                        ReceivePacket().Wait();
+                    }
+                    catch (Exception ex)
+                    {
+                        break;
+                    }
                     Thread.Sleep(1);
                 }
             });

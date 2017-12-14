@@ -86,23 +86,6 @@ namespace coreadb
             rebootBuff.Complete();
             await rebootBlock.Completion;
         }
-        public async Task RestartAll()
-        {
-            var restartBuff = new BufferBlock<SmDeviceInfo>();
-            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice));
-            var rebootBlock = new ActionBlock<SmDevice>(x => {
-                var ret = x?.KillSmApp().Result;
-                Console.WriteLine($"{x.EndPoint} Restarted app: {ret}");
-            });
-            restartBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
-            connectorBlock.LinkTo(rebootBlock, new DataflowLinkOptions { PropagateCompletion = true });
-            foreach (var device in GetDevices())
-            {
-                restartBuff.Post(device);
-            }
-            restartBuff.Complete();
-            await rebootBlock.Completion;
-        }
 
         public async Task Screenshot(string id)
         {
@@ -145,33 +128,24 @@ namespace coreadb
             _updateSums = sums;
         }
 
-        public async Task Update(string ip){
-            var deviceInfo = GetDevice(ip);
-            var device = await ConnectToDevice(deviceInfo);
-            var result = await device.Update(_updateUrl);
-            Console.WriteLine(result);
-            Console.WriteLine($"Updated: {device.EndPoint}");
+        public async Task Update(string ips)
+        {
+            var ipsplit = ips.Split(",");
+            var devices = ipsplit.Select(x => GetDevice(x));
+            await UpdateAll(devices.ToArray());
+//            var deviceInfo = GetDevice(ip);
+//            var device = await ConnectToDevice(deviceInfo);
+//            var result = await device.Update(_updateUrl);
+//            Console.WriteLine(result);
+//            Console.WriteLine($"Updated: {device.EndPoint}");
         }
 
-        public async Task UpdateAll(){
-            var updateBuff = new BufferBlock<SmDeviceInfo>();
-            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice));
-            var updaterBlock = new ActionBlock<SmDevice>(x => {
-                x?.Update(_updateUrl).ContinueWith((t)=>{
-                    var str = x.EndPoint;
-                    Console.WriteLine($"Updated {str}");
-                });
-            }); 
-            updateBuff.LinkTo(connectorBlock, new DataflowLinkOptions {PropagateCompletion = true});
-            connectorBlock.LinkTo(updaterBlock, new DataflowLinkOptions {PropagateCompletion = true});
-            foreach (var device in GetDevices())
-            {
-                updateBuff.Post(device);
-            }
-            updateBuff.Complete();
-            await updaterBlock.Completion;
+        public async Task UpdateFloor(string floor)
+        {
+            var devices = this.GetDevicesOnFloor(floor).ToArray();
+            await UpdateAll(devices);
         }
-
+        
         public async Task Touch(string ip, int x, int y){
             var deviceInfo = GetDevice(ip);
             var device = await ConnectToDevice(deviceInfo);
@@ -221,6 +195,30 @@ namespace coreadb
                 }
             }
         }
+
+        public IEnumerable<SmDeviceInfo> GetDevicesOnFloor(string floor)
+        {
+            var listCommand = new MySqlCommand($@"SELECT DISTINCT
+	sm_devices.*
+FROM
+	sm_devices
+JOIN beds ON beds.id = sm_devices.bed_id
+JOIN hospitals_sections ON hospitals_sections.id = beds.section_id
+WHERE
+	work_or_not = 1
+AND is_active = 1
+and hospitals_sections.floor = {floor}", _dbConnection);
+            using (var reader = listCommand.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var deviceIp = reader["ip"].ToString();
+                    var device = new SmDeviceInfo(deviceIp);
+                    yield return device;
+                }
+            }
+        }
+
         public SmDeviceInfo GetDevice(string ip)
         {
             var listCommand = new MySqlCommand($"SELECT * from sm_devices where ip=\"{ip}\" AND work_or_not=1 AND is_active=1", _dbConnection);
@@ -235,28 +233,138 @@ namespace coreadb
             }
             return null;
         }
-        private int _capacity = 50;
-        public async Task VerifyUpdates()
+
+        public async Task ResetAllFloor(string floor)
+        {
+            var devs = GetDevicesOnFloor(floor);
+            await ResetAll(devs.ToArray());
+        }
+
+        public async Task ResetAll(SmDeviceInfo[] devices)
+        {
+            var options = new ExecutionDataflowBlockOptions { BoundedCapacity = 15 };
+            var restartBuff = new BufferBlock<SmDeviceInfo>(options);
+            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice), options);
+            var taskLock = new object();
+            var restartTasks = new List<Task>();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var passed = 0; 
+            var restartBlock = new ActionBlock<SmDevice>(x => {
+                var task = x?.KillSmApp();
+                if (task == null) return;
+                lock (taskLock)
+                {
+                    restartTasks.Add(task.ContinueWith(taskRes =>
+                    {
+                        Interlocked.Increment(ref passed);
+                        var perc = 100.0d * ((double)passed / (double)devices.Length);
+                        Console.WriteLine($"{perc:0.00}% Restarted app {x.Ip}"); 
+                    }));
+                }
+            }, new ExecutionDataflowBlockOptions { BoundedCapacity = _capacity, MaxDegreeOfParallelism = 20 });
+            restartBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            connectorBlock.LinkTo(restartBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            foreach (var device in devices)
+            {
+                var posted = false;
+                while (!posted) posted = restartBuff.SendAsync(device).Result;
+            }
+            restartBuff.Complete();
+            await restartBlock.Completion; 
+            Task.WaitAll(restartTasks.ToArray());
+            watch.Stop();
+            var timeSpent = watch.Elapsed.TotalSeconds;
+            var perDevice = timeSpent / devices.Length;
+            Console.WriteLine($"Spent total {timeSpent:0.000} with {perDevice:0.000}");
+        }
+
+        public async Task UpdateAll(SmDeviceInfo[] devices)
+        {
+            var options = new ExecutionDataflowBlockOptions { BoundedCapacity = _capacity };
+            var updateBuff = new BufferBlock<SmDeviceInfo>(options);
+            var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice), options);
+            var taskLock = new object();
+            var updateTasks = new List<Task>();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var passed = 0;
+            var updaterBlock = new ActionBlock<SmDevice>(x => {
+                try
+                {
+
+                    var percCr = 100.0d * ((double) passed / (double) devices.Length);
+                    Console.WriteLine($"{percCr:0.00}% Updating {x.Ip}");
+
+                    var updateTask = x?.Update(_updateUrl).ContinueWith((t) =>
+                    {
+                        Interlocked.Increment(ref passed);
+                        var perc = 100.0d * ((double) passed / (double) devices.Length);
+                        Console.WriteLine($"{perc:0.00}% Updated {x.Ip}");
+                    });
+                    lock (taskLock)
+                    {
+                        updateTasks.Add(updateTask);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"{x.Ip} Error: " + e.Message);
+                }
+            }, new ExecutionDataflowBlockOptions { BoundedCapacity = _capacity, MaxDegreeOfParallelism = 20 });
+            updateBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            connectorBlock.LinkTo(updaterBlock, new DataflowLinkOptions { PropagateCompletion = true });
+            foreach (var device in devices)
+            {
+                var posted = false;
+                while (!posted)
+                {
+                    posted = updateBuff.SendAsync(device).Result;
+                }
+            }
+            updateBuff.Complete();
+            await updaterBlock.Completion;
+            Task.WaitAll(updateTasks.ToArray());
+            watch.Stop();
+            var timeSpent = watch.Elapsed.TotalSeconds;
+            var perDevice = timeSpent / devices.Length;
+            Console.WriteLine($"Spent total {timeSpent:0.000} with {perDevice:0.000}");
+        }
+
+
+        private int _capacity = 120;
+
+        public async Task VerifyUpdatesOnFloor(string floor)
+        {
+            var devices = GetDevicesOnFloor(floor);
+            await VerifyUpdates(devices.ToArray());
+        }
+        public async Task VerifyUpdates(SmDeviceInfo[] devices)
         {
             var options = new ExecutionDataflowBlockOptions { BoundedCapacity = _capacity};
             var updateBuff = new BufferBlock<SmDeviceInfo>(options);
             var connectorBlock = new TransformBlock<SmDeviceInfo, SmDevice>(new System.Func<SmDeviceInfo, Task<SmDevice>>(ConnectToDevice), options);
             var watch = System.Diagnostics.Stopwatch.StartNew();
             var passed = 0;
-            var devices = GetDevices().ToArray();
+            var taskLock = new object();
+            var verifyTasks = new List<Task>();
             var validatorBlock = new ActionBlock<SmDevice>(x =>
             {
                 var newSums = new Dictionary<string, string>();
                 foreach (var pair in _updateSums) newSums.Add(pair.Key[1], pair.Value);
-                var results = x?.VerifyFiles(newSums);
-                Interlocked.Increment(ref passed);
-                var perc = 100.0d * ((double)passed / (double)devices.Length);
-                if (results != null)
+                var resultsTask = Task<IDictionary<string, bool>>.Factory.StartNew(()=> x?.VerifyFiles(newSums));
+                lock (taskLock)
                 {
-                    var hasOldFiles = results.Values.Any(f => !f); 
-                    Console.WriteLine($"{perc:0.00}%[{(hasOldFiles ? "old" : "cur")}] {x.Ip}");
+                    verifyTasks.Add(resultsTask.ContinueWith(y =>
+                    {
+                        var result = y.Result;
+                        Interlocked.Increment(ref passed);
+                        var perc = 100.0d * ((double)passed / (double)devices.Length);
+                        if (result != null)
+                        {
+                            var hasOldFiles = result.Values.Any(f => !f);
+                            Console.WriteLine($"{perc:0.00}%[{(hasOldFiles ? "old" : "cur")}] {x.Ip}");
+                        }
+                    }));
                 }
-                
             }, new ExecutionDataflowBlockOptions{ BoundedCapacity = _capacity, MaxDegreeOfParallelism = 20 });
             updateBuff.LinkTo(connectorBlock, new DataflowLinkOptions { PropagateCompletion = true });
             connectorBlock.LinkTo(validatorBlock, new DataflowLinkOptions { PropagateCompletion = true }); 
@@ -271,6 +379,7 @@ namespace coreadb
             Console.WriteLine($"Processing devices: {devices.Length}");
             updateBuff.Complete();
             await validatorBlock.Completion;
+            Task.WaitAll(verifyTasks.ToArray());
             watch.Stop();
             var timeSpent = watch.Elapsed.TotalSeconds;
             var perDevice = timeSpent / devices.Length;

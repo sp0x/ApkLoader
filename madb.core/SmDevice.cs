@@ -120,19 +120,33 @@ namespace coreadb
         /// </summary>
         /// <param name="updateSums"></param>
         /// <returns></returns>
-        public IDictionary<string, bool> VerifyFiles(Dictionary<string, string> updateSums)
+        public IDictionary<string, UpdateState> VerifyFiles(Dictionary<string, string> updateSums)
         {
             var basePath = "/smartmodule/"; 
             var filenames = updateSums.Keys;
-            var output = new ConcurrentDictionary<string, bool>();
+            var output = new ConcurrentDictionary<string, UpdateState>();
             var result = Parallel.ForEach(filenames, path =>
             {
-                var fullPath = $"{basePath}{path}"; 
-                var sum = _device.FileChecksum(fullPath).Result;
-                var isValid = sum == updateSums[path];
-                output[path] = isValid;
+                var fullPath = $"{basePath}{path}";
+                try
+                {
+                    var sum = _device.FileChecksum(fullPath).Result;
+                    var isValid = sum == updateSums[path];
+                    output[path] = isValid ? UpdateState.UpToDate : UpdateState.Old;
+                }
+                catch (Exception ex)
+                {
+                    output[path] = UpdateState.TimedOut;
+                }
             });
             return output;
         }
+    }
+
+    public enum UpdateState
+    {
+        Old,
+        UpToDate,
+        TimedOut
     }
 }

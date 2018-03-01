@@ -132,7 +132,8 @@ namespace coreadb
         {
             var ipsplit = ips.Split(",");
             var devices = ipsplit.Select(x => GetDevice(x));
-            await UpdateAll(devices.ToArray());
+            var smDeviceInfos = devices.Where(x=>x!=null).ToArray();
+            await UpdateAll(smDeviceInfos);
 //            var deviceInfo = GetDevice(ip);
 //            var device = await ConnectToDevice(deviceInfo);
 //            var result = await device.Update(_updateUrl);
@@ -350,7 +351,7 @@ and hospitals_sections.floor = {floor}", _dbConnection);
             {
                 var newSums = new Dictionary<string, string>();
                 foreach (var pair in _updateSums) newSums.Add(pair.Key[1], pair.Value);
-                var resultsTask = Task<IDictionary<string, bool>>.Factory.StartNew(()=> x?.VerifyFiles(newSums));
+                var resultsTask = Task<IDictionary<string, UpdateState>>.Factory.StartNew(()=> x?.VerifyFiles(newSums));
                 lock (taskLock)
                 {
                     verifyTasks.Add(resultsTask.ContinueWith(y =>
@@ -360,8 +361,17 @@ and hospitals_sections.floor = {floor}", _dbConnection);
                         var perc = 100.0d * ((double)passed / (double)devices.Length);
                         if (result != null)
                         {
-                            var hasOldFiles = result.Values.Any(f => !f);
-                            Console.WriteLine($"{perc:0.00}%[{(hasOldFiles ? "old" : "cur")}] {x.Ip}");
+                            var hasOldFiles = result.Values.Any(f => f== UpdateState.Old);
+                            var hasTimedOut = result.Values.Any(f => f== UpdateState.TimedOut);
+                            if (hasTimedOut)
+                            {
+                                Console.WriteLine($"{perc:0.00}%[timeout] {x.Ip}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"{perc:0.00}%[{(hasOldFiles ? "old" : "cur")}] {x.Ip}");
+                            }
+                            
                         }
                     }));
                 }

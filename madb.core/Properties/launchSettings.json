@@ -2,7 +2,7 @@
   "profiles": {
     "coreadb": {
       "commandName": "Project",
-      "commandLineArgs": "--host vma.ovaras.net --update 10.10.11.196"
+      "commandLineArgs": "--host ir.ovaras.net --update 10.10.11.196"
     }
   }
 }

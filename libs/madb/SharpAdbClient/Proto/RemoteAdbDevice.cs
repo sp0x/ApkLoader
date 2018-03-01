@@ -253,7 +253,12 @@ namespace SharpAdbClient.Proto
 
                 //adbClient.Connect(endpoint);
                 //adbClient.SetDevice() 
-                var endpoint = new IPEndPoint(Dns.Resolve(host).AddressList[0], (int)port);
+                IPAddress targetIp;
+                if(!IPAddress.TryParse(host, out targetIp)){
+                    var dnsx = Dns.Resolve(host);
+                    targetIp = dnsx.AddressList[0];
+                }
+                var endpoint = new IPEndPoint(targetIp, (int)port);
                 return await remotedev.Connect(endpoint);
             }
         }

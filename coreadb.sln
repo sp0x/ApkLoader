@@ -5,10 +5,6 @@ VisualStudioVersion = 15.0.26906.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "coreadb", "madb.core\coreadb.csproj", "{8C4D8C19-42D3-4409-905C-7D952517F6AB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp", "libs\ImageSharp\src\ImageSharp\ImageSharp.csproj", "{C38AD057-1A7D-4EF1-BC92-77420B2818A9}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Drawing", "libs\ImageSharp\src\ImageSharp.Drawing\ImageSharp.Drawing.csproj", "{663FAA2C-11BB-49A0-860E-9D271DC9B04F}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpAdbClient", "libs\madb\SharpAdbClient\SharpAdbClient.csproj", "{02269D70-0516-4393-A71E-2C0C6A949EEB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpAdbClient.Extensions", "libs\madb\SharpAdbClient.Extensions\SharpAdbClient.Extensions.csproj", "{DD7C2241-89C3-45E8-A89D-0DEDAF895755}"

@@ -54,7 +54,11 @@ namespace coreadb
                 else if (opRestartFloor.HasValue()) _manager.ResetAllFloor(opRestartFloor.Value()).Wait();
                 else if (opScreenshot.HasValue()) _manager.Screenshot(opScreenshot.Value()).Wait();
                 else if (opWatch.HasValue()) _manager.Watch(opWatch.Value()).Wait();
-                else if (opUpdate.HasValue()) _manager.Update(opUpdate.Value()).Wait();
+                else if (opUpdate.HasValue())
+                {
+                    var task = _manager.Update(opUpdate.Value());
+                    task.Wait();
+                }
                 else if (opUpdateFloor.HasValue()) _manager.UpdateFloor(opUpdateFloor.Value()).Wait();
                 else if (opUpdateAll.HasValue()) _manager.UpdateAll(_manager.GetDevices().ToArray()).Wait();
                 else if (opVerifyUpdate.HasValue())

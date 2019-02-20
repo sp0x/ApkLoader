@@ -46,8 +46,9 @@ namespace coreadb
             cli.HelpOption("-? | --help"); 
             cli.OnExecute(() =>
             {
+                bool hasHostname = !string.IsNullOrEmpty(hostname.Value());
                 Startup(hostname.Value());
-                if(opNoForward.HasValue()) _manager.DisableForwarding();
+                if(opNoForward.HasValue() || !hasHostname) _manager.DisableForwarding();
                 if(opVerbose.HasValue()) _manager.EnableVerbouseMode();
                 if (opReboot.HasValue()) _manager.RebootAll().Wait();
                 else if (opRestart.HasValue()) _manager.ResetAll(_manager.GetDevices().ToArray()).Wait();
@@ -95,7 +96,7 @@ namespace coreadb
             var config = builder.Build();
             _netManager = new NetworkManager(config, targetHostname); 
             _adbManager = new AdbManager();
-            _adbManager.ListenForDevices();
+            //_adbManager.ListenForDevices();
             _manager = new DomainManager(config, _adbManager, _netManager);
         }
     }

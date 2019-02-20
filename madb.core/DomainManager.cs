@@ -131,7 +131,7 @@ namespace coreadb
         public async Task Update(string ips)
         {
             var ipsplit = ips.Split(",");
-            var devices = ipsplit.Select(x => GetDevice(x));
+            var devices = ipsplit.Select(x => SmDeviceInfo.FromIp(x));
             var smDeviceInfos = devices.Where(x=>x!=null).ToArray();
             await UpdateAll(smDeviceInfos);
 //            var deviceInfo = GetDevice(ip);
@@ -164,7 +164,10 @@ namespace coreadb
                 uint port = 5555;
                 device = await _manager.ConnectDevice(info.Ip, port, _verbose);
             }
-            if(device!=null) device.Ip = info.Ip;
+            if(device!=null){
+                device.Ip = info.Ip;
+                device.Id = info.Id;
+            }
             NoticeDevice(device);
             return device;
         }
@@ -191,7 +194,7 @@ namespace coreadb
                 while (reader.Read())
                 {
                     var deviceIp = reader["ip"].ToString();
-                    var device = new SmDeviceInfo(deviceIp);
+                    var device = new SmDeviceInfo(deviceIp, long.Parse(reader["id"].ToString()));
                     yield return device;
                 }
             }
@@ -214,7 +217,7 @@ and hospitals_sections.floor = {floor}", _dbConnection);
                 while (reader.Read())
                 {
                     var deviceIp = reader["ip"].ToString();
-                    var device = new SmDeviceInfo(deviceIp);
+                    var device = new SmDeviceInfo(deviceIp, long.Parse(reader["id"].ToString()));
                     yield return device;
                 }
             }
@@ -228,7 +231,7 @@ and hospitals_sections.floor = {floor}", _dbConnection);
                 if (reader.Read())
                 {
                     var deviceIp = reader["ip"].ToString();
-                    var device = new SmDeviceInfo(deviceIp);
+                    var device = new SmDeviceInfo(deviceIp, long.Parse(reader["id"].ToString()));
                     return device;
                 }
             }
@@ -351,7 +354,11 @@ and hospitals_sections.floor = {floor}", _dbConnection);
             {
                 var newSums = new Dictionary<string, string>();
                 foreach (var pair in _updateSums) newSums.Add(pair.Key[1], pair.Value);
-                var resultsTask = Task<IDictionary<string, UpdateState>>.Factory.StartNew(()=> x?.VerifyFiles(newSums));
+                var resultsTask = Task<IDictionary<string, UpdateState>>.Factory.StartNew(()=> {
+                    if(x!=null) Console.WriteLine($"#{x.Id} {x.Ip} Verifying..");
+                    var result = x?.VerifyFiles(newSums);
+                    return result;
+                });
                 lock (taskLock)
                 {
                     verifyTasks.Add(resultsTask.ContinueWith(y =>
@@ -365,11 +372,11 @@ and hospitals_sections.floor = {floor}", _dbConnection);
                             var hasTimedOut = result.Values.Any(f => f== UpdateState.TimedOut);
                             if (hasTimedOut)
                             {
-                                Console.WriteLine($"{perc:0.00}%[timeout] {x.Ip}");
+                                Console.WriteLine($"#{x.Id} {perc:0.00}%[timeout] {x.Ip}");
                             }
                             else
                             {
-                                Console.WriteLine($"{perc:0.00}%[{(hasOldFiles ? "old" : "cur")}] {x.Ip}");
+                                Console.WriteLine($"#{x.Id} {perc:0.00}%[{(hasOldFiles ? "old" : "cur")}] {x.Ip}");
                             }
                             
                         }

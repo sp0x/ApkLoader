@@ -21,28 +21,42 @@ namespace coreadb
         {
             this._config = config;
             _targetHost = _config["targetHost"];
-            if (!string.IsNullOrEmpty(targetHost)) _targetHost = targetHost;
+            if (!string.IsNullOrEmpty(targetHost))
+            {
+                _targetHost = targetHost;
+                _targetHostUser = _config["targetHostUser"];
+                var s = _config["privateKey"];
+                _privateKey = new PrivateKeyFile(s);
 
-            _targetHostUser = _config["targetHostUser"];
-            var s = _config["privateKey"];
-            _privateKey = new PrivateKeyFile(s);
+                //Create tunnel
 
-            //Create tunnel
-            _connection = new ConnectionInfo(_targetHost,
-                _targetHostUser,
-                new PrivateKeyAuthenticationMethod(_targetHostUser, _privateKey));
-            
-            _client = new SshClient(_connection);
-            _client.Connect();
+                _connection = new ConnectionInfo(_targetHost,
+                    _targetHostUser,
+                    new PrivateKeyAuthenticationMethod(_targetHostUser, _privateKey));
 
-            var command = _client.CreateCommand("whoami");
-            var whoami = command.Execute().Trim();
-            Console.WriteLine($"[{_targetHost}] Loggedin in as: {whoami}");
+                _client = new SshClient(_connection);
+                _client.Connect();
+
+                var command = _client.CreateCommand("whoami");
+                var whoami = command.Execute().Trim();
+                Console.WriteLine($"[{_targetHost}] Loggedin in as: {whoami}");
+            }
+            else
+            {
+
+            }
+
+
         }
 
 
         public uint Forward(string host, uint port)
         {
+            if (_client == null)
+            {
+                Console.WriteLine($"Can't forward port {host}:{port}");
+                return 0;
+            }
             uint rndPort = (uint)new Random().Next(1025, 65000);
             var newPort = new ForwardedPortLocal("127.0.0.1", rndPort, host, port);
             newPort.Exception += delegate (object sender, ExceptionEventArgs e)

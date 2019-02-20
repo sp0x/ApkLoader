@@ -12,10 +12,17 @@ namespace coreadb
 {
     public class SmDeviceInfo
     {
+        public long Id {get;set;}
         public string Ip { get; set; }
-        public SmDeviceInfo(string ip)
+        public SmDeviceInfo(string ip, long id)
         {
             this.Ip = ip;
+            this.Id = id;
+        }
+
+        public static SmDeviceInfo FromIp(string ip)
+        {
+            return new SmDeviceInfo(ip, 1);
         }
     }
 
@@ -27,12 +34,12 @@ namespace coreadb
         public IPEndPoint EndPoint { get; private set; }
 
         public SmDevice()
-            : base(null)
+            : base(null, 0)
         {
             
         }
         public SmDevice(RemoteAdbDevice remDevice) 
-            : base(remDevice.EndPoint.Address.Address.ToString())
+            : base(remDevice.EndPoint.Address.Address.ToString(),0)
         {
             _device = remDevice;
             EndPoint = remDevice.EndPoint;

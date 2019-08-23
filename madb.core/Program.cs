@@ -18,6 +18,8 @@ namespace coreadb
         private static AdbManager _adbManager;
         private static NetworkManager _netManager;
         private static DomainManager _manager;
+        private static int? _mysqlPort;
+        private static string _mysqlHost;
 
         public static void Main(string[] args)
         {
@@ -30,6 +32,8 @@ namespace coreadb
             CommandOption opReboot = cli.Option("-b", "Reboots all devices", CommandOptionType.NoValue);
             CommandOption opRestart = cli.Option("-r", "Restarts all apps", CommandOptionType.NoValue);
             CommandOption opRestartFloor = cli.Option("--rf <floor>", "Restarts all apps on floor", CommandOptionType.SingleValue);
+            CommandOption opMysqlPort = cli.Option("--mport <port>", "Sets the mysql port that's used", CommandOptionType.SingleValue);
+            CommandOption opMysqlHost = cli.Option("--mhost <host>", "Sets the mysql host that's used", CommandOptionType.SingleValue);
             CommandOption opNoForward = cli.Option("--no-forward", "Disables forwarding", CommandOptionType.NoValue);
             CommandOption opScreenshot = cli.Option("--scr <devIp>", "Grabs a screenshot of the given device", CommandOptionType.SingleValue);
             CommandOption opWatch = cli.Option("--watch <devIp>", "Grabs a screenshot every 5 seconds of the given device", CommandOptionType.SingleValue);
@@ -47,8 +51,17 @@ namespace coreadb
             cli.OnExecute(() =>
             {
                 bool hasHostname = !string.IsNullOrEmpty(hostname.Value());
+                
+                if (opMysqlPort.HasValue())
+                {
+                    _mysqlPort = int.Parse(opMysqlPort.Value());
+                }
+                if (opMysqlHost.HasValue())
+                {
+                    _mysqlHost = opMysqlHost.Value();
+                }
                 Startup(hostname.Value());
-                if(opNoForward.HasValue() || !hasHostname) _manager.DisableForwarding();
+                if (opNoForward.HasValue() || !hasHostname) _manager.DisableForwarding();
                 if(opVerbose.HasValue()) _manager.EnableVerbouseMode();
                 if (opReboot.HasValue()) _manager.RebootAll().Wait();
                 else if (opRestart.HasValue()) _manager.ResetAll(_manager.GetDevices().ToArray()).Wait();
@@ -76,6 +89,7 @@ namespace coreadb
                     var touchVal = opTouch.Value().Split(',');
                     _manager.Touch(touchVal[0], int.Parse(touchVal[1]), int.Parse(touchVal[2])).Wait();
                 }
+                
                 return 0;
             }); 
             var res = cli.Execute(args);
@@ -97,7 +111,7 @@ namespace coreadb
             _netManager = new NetworkManager(config, targetHostname); 
             _adbManager = new AdbManager();
             //_adbManager.ListenForDevices();
-            _manager = new DomainManager(config, _adbManager, _netManager);
+            _manager = new DomainManager(config, _adbManager, _netManager, _mysqlHost, _mysqlPort);
         }
     }
 }

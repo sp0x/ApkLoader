@@ -24,7 +24,7 @@ namespace coreadb
         private string _updateUrl;
         private Dictionary<string[], string> _updateSums;
 
-        public DomainManager(IConfigurationRoot config, AdbManager manager, NetworkManager netManager)
+        public DomainManager(IConfigurationRoot config, AdbManager manager, NetworkManager netManager, string mysqlHost, int? mysqlPort=null)
         {
             _verbose = false;
             _shouldForward=true;
@@ -37,16 +37,20 @@ namespace coreadb
             _updateUrl = updateSection["sigma_base_url"];
             _updateSums = new Dictionary<string[], string>();
             var dbSection = config.GetSection("db");
+            if (!mysqlPort.HasValue) mysqlPort = 3306;
             var user = dbSection["user"];
             var pass = dbSection["pass"];
             var database = dbSection["database"];
             var host = dbSection["host"];
+            if (!string.IsNullOrEmpty(mysqlHost)) host = mysqlHost;
             host = !string.IsNullOrEmpty(host) ? host : _netManager.TargetHost.ToString();
+
             var isSecure = dbSection["secure"]!=null;
             var secureSuffix = isSecure ? "" : ";SslMode=none";
             var timeout = ";Connection Timeout=15";
             var constr =
-                $"server={host};user id={user};password={pass};persistsecurityinfo=True;port=3306;database={database}{secureSuffix}{timeout}";
+                $"server={host};user id={user};password={pass};persistsecurityinfo=True;port={mysqlPort.Value};database={database}{secureSuffix}{timeout}";
+            Console.WriteLine($"Connecting to MYSQL: {constr}");
             _dbConnection = new MySqlConnection()
             {
                 ConnectionString = constr

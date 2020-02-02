@@ -2,19 +2,23 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
+using System.Threading.Tasks.Dataflow;
+using SharpAdbClient.Proto;
+
 namespace SharpAdbClient
 {
     using SharpAdbClient.Exceptions;
     using SharpAdbClient.Logs;
     using System;
-    using System.Collections.Generic; 
+    using System.Collections.Generic;
+    using System.Drawing;
     using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Net;
     using System.Text;
     using System.Threading;
-    using System.Threading.Tasks; 
+    using System.Threading.Tasks;
 
     /// <summary>
     /// <para>
@@ -148,7 +152,7 @@ namespace SharpAdbClient
         /// </returns>
         public static byte[] FormAdbRequest(string req)
         {
-            string resultStr = string.Format("{0}{1}\n", req.Length.ToString("X4"), req);
+            string resultStr = string.Format("{0}{1}", req.Length.ToString("X4"), req);
             byte[] result = Encoding.GetBytes(resultStr);
             return result;
         }
@@ -190,6 +194,12 @@ namespace SharpAdbClient
             }
         }
 
+        public IAdbSocket GetSocket()
+        {
+            var sock = this.adbSocketFactory(this.EndPoint);
+            return sock;
+        }
+
         /// <inheritdoc/>
         public void KillAdb()
         {
@@ -218,14 +228,13 @@ namespace SharpAdbClient
         }
 
         /// <inheritdoc/>
-        public void SetDevice(IAdbSocket socket, IAdbDeviceData device)
+        public void SetDevice(IAdbSocket socket, DeviceData device)
         {
             // if the device is not null, then we first tell adb we're looking to talk
             // to a specific device
-            if (device != null && device.GetType() == typeof(DeviceData))
+            if (device != null)
             {
-                var data = device as DeviceData;
-                socket.SendAdbRequest($"host:transport:{data.Serial}");
+                socket.SendAdbRequest($"host:transport:{device.Serial}");
 
                 try
                 {
@@ -235,7 +244,7 @@ namespace SharpAdbClient
                 {
                     if (string.Equals("device not found", e.AdbError, StringComparison.OrdinalIgnoreCase))
                     {
-                        throw new DeviceNotFoundException(data.Serial);
+                        throw new DeviceNotFoundException(device.Serial);
                     }
                     else
                     {
@@ -246,7 +255,7 @@ namespace SharpAdbClient
         }
 
         /// <inheritdoc/>
-        public void CreateForward(DeviceData device, string local, string remote, bool allowRebind)
+        public int CreateForward(DeviceData device, string local, string remote, bool allowRebind)
         {
             this.EnsureDevice(device);
 
@@ -256,13 +265,22 @@ namespace SharpAdbClient
 
                 socket.SendAdbRequest($"host-serial:{device.Serial}:forward:{rebind}{local};{remote}");
                 var response = socket.ReadAdbResponse();
+                response = socket.ReadAdbResponse();
+                var portString = socket.ReadString();
+
+                if (portString != null && int.TryParse(portString, out int port))
+                {
+                    return port;
+                }
+
+                return 0;
             }
         }
 
         /// <inheritdoc/>
-        public void CreateForward(DeviceData device, ForwardSpec local, ForwardSpec remote, bool allowRebind)
+        public int CreateForward(DeviceData device, ForwardSpec local, ForwardSpec remote, bool allowRebind)
         {
-            this.CreateForward(device, local?.ToString(), remote?.ToString(), allowRebind);
+            return this.CreateForward(device, local?.ToString(), remote?.ToString(), allowRebind);
         }
 
         /// <inheritdoc/>
@@ -308,7 +326,28 @@ namespace SharpAdbClient
         }
 
         /// <inheritdoc/>
-        public async Task ExecuteRemoteCommandAsync(string command, DeviceData device, IShellOutputReceiver receiver, CancellationToken cancellationToken, int maxTimeToOutputResponse)
+        public Task ExecuteRemoteCommandAsync(string command, DeviceData device, IShellOutputReceiver receiver, CancellationToken cancellationToken, int maxTimeToOutputResponse)
+        {
+            return this.ExecuteRemoteCommandAsync(command, device, receiver, cancellationToken, maxTimeToOutputResponse, Encoding);
+        }
+
+        public async Task<IPropagatorBlock<byte[], byte[]>> ExecuteRemoteCommandAsyncBlock(string cmd, DeviceData d, CancellationToken ct, int maxTimeToOutputResponse, Encoding encoding)
+        {
+            this.EnsureDevice(d);
+            using (IAdbSocket sock = this.GetSocket())
+            {
+                this.SetDevice(sock, d);
+                uint streamId = 1;
+                sock.SendAdbRequest($"shell:{cmd}");
+                var ss = sock.GetShellStream();
+                var stream = new AdbLocalStream(sock, streamId, encoding, ct);
+                //OpenStreams.Add(streamId, stream);
+                return stream.Block;
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task ExecuteRemoteCommandAsync(string command, DeviceData device, IShellOutputReceiver receiver, CancellationToken cancellationToken, int maxTimeToOutputResponse, Encoding encoding)
         {
             this.EnsureDevice(device);
 
@@ -322,7 +361,7 @@ namespace SharpAdbClient
 
                 try
                 {
-                    using (StreamReader reader = new StreamReader(socket.GetShellStream(), Encoding))
+                    using (StreamReader reader = new StreamReader(socket.GetShellStream(), encoding))
                     {
                         // Previously, we would loop while reader.Peek() >= 0. Turns out that this would
                         // break too soon in certain cases (about every 10 loops, so it appears to be a timing
@@ -373,7 +412,7 @@ namespace SharpAdbClient
         }
 
         /// <inheritdoc/>
-        public async Task<System.Drawing.Image> GetFrameBufferAsync(DeviceData device, CancellationToken cancellationToken)
+        public async Task<Image> GetFrameBufferAsync(DeviceData device, CancellationToken cancellationToken)
         {
             this.EnsureDevice(device);
 
@@ -383,19 +422,6 @@ namespace SharpAdbClient
 
                 // Convert the framebuffer to an image, and return that.
                 return framebuffer.ToImage();
-            }
-        }
-
-        /// <inheritdoc/>
-        public static async Task<System.Drawing.Image> GetFrameBufferAsync(IAdbDeviceData device, CancellationToken cancellationToken)
-        {
-            var buffer = new Framebuffer(device);
-            using (buffer)
-            {
-                await buffer.RefreshAsync(cancellationToken).ConfigureAwait(false);
-
-                // Convert the framebuffer to an image, and return that.
-                return buffer.ToImage();
             }
         }
 

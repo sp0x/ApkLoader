@@ -2,12 +2,11 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
-using System.Drawing;
-using System.Drawing.Imaging; 
-
 namespace SharpAdbClient
 {
-    using System;  
+    using System;
+    using System.Drawing;
+    using System.Drawing.Imaging;
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Text;
@@ -28,6 +27,11 @@ namespace SharpAdbClient
         /// Gets or sets the number of bytes per pixel. Usual values include 32 or 24.
         /// </summary>
         public uint Bpp { get; set; }
+
+        /// <summary>
+        /// Gets or sets the color space. Only available starting with <see cref="Version"/> 2.
+        /// </summary>
+        public uint ColorSpace { get; set; }
 
         /// <summary>
         /// Gets or sets the total size, in bits, of the framebuffer.
@@ -83,7 +87,21 @@ namespace SharpAdbClient
             using (BinaryReader reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true))
             {
                 header.Version = reader.ReadUInt32();
+
+                if (header.Version > 2)
+                {
+                    // Technically, 0 is not a supported version either; we assume version 0 indicates
+                    // an empty framebuffer.
+                    throw new InvalidOperationException($"Framebuffer version {header.Version} is not supported");
+                }
+
                 header.Bpp = reader.ReadUInt32();
+
+                if (header.Version >= 2)
+                {
+                    header.ColorSpace = reader.ReadUInt32();
+                }
+
                 header.Size = reader.ReadUInt32();
                 header.Width = reader.ReadUInt32();
                 header.Height = reader.ReadUInt32();
@@ -116,16 +134,16 @@ namespace SharpAdbClient
         }
 
         /// <summary>
-        /// Converts a <see cref="byte"/> array containing the raw frame buffer data to a <see cref="SixLabors.ImageSharp.Image"/>.
+        /// Converts a <see cref="byte"/> array containing the raw frame buffer data to a <see cref="Image"/>.
         /// </summary>
         /// <param name="buffer">
         /// The buffer containing the image data.
         /// </param>
         /// <returns>
-        /// A <see cref="SixLabors.ImageSharp.Image"/> that represents the image contained in the frame buffer, or <see langword="null"/> if the framebuffer
+        /// A <see cref="Image"/> that represents the image contained in the frame buffer, or <see langword="null"/> if the framebuffer
         /// does not contain any data. This can happen when DRM is enabled on the device.
         /// </returns>
-        public System.Drawing.Image ToImage(byte[] buffer)
+        public Image ToImage(byte[] buffer)
         {
             if (buffer == null)
             {
@@ -140,27 +158,28 @@ namespace SharpAdbClient
             }
 
             // The pixel format of the framebuffer may not be one that .NET recognizes, so we need to fix that
-            var pixelFormat = this.StandardizePixelFormat(buffer); 
+            var pixelFormat = this.StandardizePixelFormat(buffer);
+
             Bitmap bitmap = new Bitmap((int)this.Width, (int)this.Height, pixelFormat);
             BitmapData bitmapData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.WriteOnly, pixelFormat);
             Marshal.Copy(buffer, 0, bitmapData.Scan0, buffer.Length);
             bitmap.UnlockBits(bitmapData);
 
-            return (System.Drawing.Image)bitmap;
+            return bitmap;
         }
 
-//        /// <summary>
-//        /// Returns the <see cref="PixelFormat"/> that describes pixel format of an image that is stored according to the information
-//        /// present in this <see cref="FramebufferHeader"/>. Because the <see cref="PixelFormat"/> enumeration does not allow for all
-//        /// formats supported by Android, this method also takes a <paramref name="buffer"/> and reorganizes the bytes in the buffer to
-//        /// match the return value of this function.
-//        /// </summary>
-//        /// <param name="buffer">
-//        /// A byte array in which the images are stored according to this <see cref="FramebufferHeader"/>.
-//        /// </param>
-//        /// <returns>
-//        /// A <see cref="PixelFormat"/> that describes how the image data is represented in this <paramref name="buffer"/>.
-//        /// </returns>
+        /// <summary>
+        /// Returns the <see cref="PixelFormat"/> that describes pixel format of an image that is stored according to the information
+        /// present in this <see cref="FramebufferHeader"/>. Because the <see cref="PixelFormat"/> enumeration does not allow for all
+        /// formats supported by Android, this method also takes a <paramref name="buffer"/> and reorganizes the bytes in the buffer to
+        /// match the return value of this function.
+        /// </summary>
+        /// <param name="buffer">
+        /// A byte array in which the images are stored according to this <see cref="FramebufferHeader"/>.
+        /// </param>
+        /// <returns>
+        /// A <see cref="PixelFormat"/> that describes how the image data is represented in this <paramref name="buffer"/>.
+        /// </returns>
         private PixelFormat StandardizePixelFormat(byte[] buffer)
         {
             // Initial parameter validation.
@@ -171,7 +190,8 @@ namespace SharpAdbClient
 
             if (buffer.Length != this.Width * this.Height * (this.Bpp / 8))
             {
-                throw new ArgumentOutOfRangeException(nameof(buffer));
+                throw new ArgumentOutOfRangeException(nameof(buffer), $"The buffer length {buffer.Length} does not match the expected buffer " +
+                    $"length for a picture of width {this.Width}, height {this.Height} and pixel depth {this.Bpp}");
             }
 
             if (this.Width == 0 || this.Height == 0 || this.Bpp == 0)
@@ -188,13 +208,13 @@ namespace SharpAdbClient
                     || this.Blue.Length != 8
                     || this.Green.Length != 8)
                 {
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException($"The pixel format with with RGB lengths of {this.Red.Length}:{this.Blue.Length}:{this.Green.Length} is not supported");
                 }
 
                 // Alpha can be present or absent, but must be 8 bytes long
                 if (this.Alpha.Length != 0 && this.Alpha.Length != 8)
                 {
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException($"The alpha length {this.Alpha.Length} is not supported");
                 }
 
                 // Get the index at which the red, bue, green and alpha values are stored.
@@ -269,7 +289,7 @@ namespace SharpAdbClient
             }
 
             // If not caught by any of the statements before, the format is not supported.
-            throw new NotSupportedException();
+            throw new NotSupportedException($"Pixel depths of {this.Bpp} are not supported");
         }
     }
 }

@@ -9,12 +9,12 @@ namespace SharpAdbClient.Proto
         public uint LocalId { get; set; }
         public uint RemoteId { get; set; }
         public IPropagatorBlock<byte[], byte[]> Block { get; private set; }
-        private TcpSocket _sock;
+        private IAdbSocket _sock;
         private BufferBlock<byte[]> _outputBlock;
         private ActionBlock<byte[]> _inputBlock;
         public event EventHandler<EventArgs> OnWriting;
         
-        public AdbStream(TcpSocket sock, uint localId)
+        public AdbStream(IAdbSocket sock, uint localId)
         {
             _sock = sock;
             this.LocalId = localId;
@@ -28,7 +28,7 @@ namespace SharpAdbClient.Proto
                 {
                     throw new Exception("Remote stream not established yet!");
                 }
-                _sock.Send(buff);
+                _sock.Send(buff, buff.Length);
             });
             Block = DataflowBlock.Encapsulate(_inputBlock, _outputBlock);
         }
@@ -40,7 +40,7 @@ namespace SharpAdbClient.Proto
                 RemoteId = newPacket.arg1;
             }
             var okay = Command.CreateOkCommand(LocalId, RemoteId);
-            _sock.Send(okay);
+            _sock.Send(okay, okay.Length);
             _outputBlock.Post(newPacket.Data);
 
         }

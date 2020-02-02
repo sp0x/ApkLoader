@@ -2,8 +2,6 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
-
-
 namespace SharpAdbClient
 {
     using System;
@@ -13,7 +11,8 @@ namespace SharpAdbClient
     using System.Linq;
     using System.Net;
     using System.Text;
-    using SharpAdbClient.Exceptions;  
+    using SharpAdbClient.Exceptions;
+
     /// <summary>
     ///
     /// </summary>
@@ -166,7 +165,7 @@ namespace SharpAdbClient
         /// Takes a screen shot of the device and returns it as a <see cref="RawImage"/>
         /// </summary>
         /// <value>The screenshot.</value>
-        System.Drawing.Image Screenshot { get; }
+        Image Screenshot { get; }
 
         /// <summary>
         /// Determines whether this instance can use the SU shell.

@@ -2,8 +2,6 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
-using System.Net; 
-
 namespace SharpAdbClient
 {
     using System;
@@ -34,42 +32,31 @@ namespace SharpAdbClient
         /// <param name="client">
         /// A <see cref="AdbClient"/> which manages the connection with adb.
         /// </param>
-        public Framebuffer(IAdbDeviceData device)
+        public Framebuffer(DeviceData device, AdbClient client)
         {
             if (device == null)
             {
                 throw new ArgumentNullException(nameof(device));
             }
-            this.Device = device;
-
-            // Initialize the headerData buffer
-            var size = Marshal.SizeOf<FramebufferHeader>();
-            this.headerData = new byte[size];
-        }
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Framebuffer"/> class.
-        /// </summary>
-        /// <param name="device">
-        /// The device for which to fetch the frame buffer.
-        /// </param>
-        /// <param name="client">
-        /// A <see cref="AdbClient"/> which manages the connection with adb.
-        /// </param>
-        public Framebuffer(DeviceData device, AdbClient client)
-            : this(device)
-        { 
 
             if (client == null)
             {
                 throw new ArgumentNullException(nameof(client));
             }
+
+            this.Device = device;
+
             this.client = client;
+
+            // Initialize the headerData buffer
+            var size = Marshal.SizeOf<FramebufferHeader>();
+            this.headerData = new byte[size];
         }
 
         /// <summary>
         /// Gets the device for which to fetch the frame buffer.
         /// </summary>
-        public IAdbDeviceData Device
+        public DeviceData Device
         {
             get;
             private set;
@@ -108,15 +95,7 @@ namespace SharpAdbClient
         public async Task RefreshAsync(CancellationToken cancellationToken)
         {
             this.EnsureNotDisposed();
-            EndPoint endpoint = null;
-            if (this.Device.GetType() == typeof(DeviceData))
-            {
-                endpoint = this.client.EndPoint;
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+
             using (var socket = Factories.AdbSocketFactory(this.client.EndPoint))
             {
                 // Select the target device
@@ -161,7 +140,7 @@ namespace SharpAdbClient
         /// <returns>
         /// An <see cref="Image"/> which represents the framebuffer data.
         /// </returns>
-        public System.Drawing.Image ToImage()
+        public Image ToImage()
         {
             this.EnsureNotDisposed();
 

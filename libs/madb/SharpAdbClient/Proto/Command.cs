@@ -101,7 +101,7 @@ namespace SharpAdbClient.Proto
                 binWr.Write(this.Data);
             }
             var output = buff.ToArray();
-            buff.Close();
+            //buff.Close();
             return output;
         }
 

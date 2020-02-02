@@ -2,8 +2,6 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
-using System.Diagnostics;
-
 namespace SharpAdbClient
 {
     using System;
@@ -90,11 +88,6 @@ namespace SharpAdbClient
         {
             return this.socket.Send(buffer, offset, size, socketFlags);
         }
-        /// <inheritdoc/>
-        public int Send(byte[] buffer)
-        { 
-            return this.socket.Send(buffer);
-        }
 
         /// <inheritdoc/>
         public Stream GetStream()
@@ -103,25 +96,15 @@ namespace SharpAdbClient
         }
 
         /// <inheritdoc/>
-        public int Receive(byte[] buffer, int size, SocketFlags socketFlags)
+        public int Receive(byte[] buffer, int offset, SocketFlags socketFlags)
         {
-            return this.socket.Receive(buffer, size, socketFlags);
+            return this.socket.Receive(buffer, offset, socketFlags);
         }
-        /// <inheritdoc/>
-        public int Receive(byte[] buffer)
-        {
-            return this.socket.Receive(buffer);
-        }
+
         /// <inheritdoc/>
         public Task<int> ReceiveAsync(byte[] buffer, int offset, int size, SocketFlags socketFlags, CancellationToken cancellationToken)
         {
             return this.socket.ReceiveAsync(buffer, offset, size, socketFlags, cancellationToken);
-        }
-
-        /// <inheritdoc/>
-        public Task<int> ReceiveAsync(byte[] buffer, CancellationToken cancellationToken)
-        {
-            return this.socket.ReceiveAsync(buffer, 0, buffer.Length, SocketFlags.None, cancellationToken);
         }
     }
 }

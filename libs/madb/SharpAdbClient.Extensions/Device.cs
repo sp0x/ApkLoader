@@ -1,6 +1,10 @@
 ﻿// <copyright file="Device.cs" company="The Android Open Source Project, Ryan Conrad, Quamotion">
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
-// </copyright> 
+// </copyright>
+
+using System.Threading.Tasks.Dataflow;
+using SharpAdbClient.Proto;
+
 namespace SharpAdbClient
 {
     using DeviceCommands;
@@ -14,6 +18,8 @@ namespace SharpAdbClient
     using System.Net.Sockets;
     using System.Text.RegularExpressions;
     using System.Threading;
+    using System.Threading.Tasks;
+
     /// <summary>
     /// Represents an Android device.
     /// </summary>
@@ -547,7 +553,7 @@ namespace SharpAdbClient
         /// Takes a screen shot of the device and returns it as a <see cref="RawImage"/>
         /// </summary>
         /// <value>The screenshot.</value>
-        public System.Drawing.Image Screenshot
+        public Image Screenshot
         {
             get
             {
@@ -649,9 +655,9 @@ namespace SharpAdbClient
         /// <param name="logname">
         /// The names of the log files to retrieve.
         /// </param>
-        public async void RunLogService(Action<LogEntry> sink, params LogId[] logNames)
+        public Task RunLogServiceAsync(DeviceData device, Action<LogEntry> messageSink, CancellationToken cancellationToken, params LogId[] logNames)
         {
-            await AdbClient.Instance.RunLogServiceAsync(this.DeviceData, sink, CancellationToken.None, logNames);
+            return AdbClient.Instance.RunLogServiceAsync(this.DeviceData, messageSink, cancellationToken, logNames);
         }
 
         /// <summary>
@@ -708,17 +714,7 @@ namespace SharpAdbClient
             }
         }
         /*
-        public String GetClientName ( int pid ) {
-            lock ( ClientList ) {
-                foreach ( Client c in ClientList ) {
-                    if ( c.ClientData ( ).Pid == pid ) {
-                        return c.ClientData.ClientDescription;
-                    }
-                }
-            }
-
-            return null;
-        }
+        
 
         DeviceMonitor Monitor { get; private set; }
 
@@ -770,6 +766,26 @@ namespace SharpAdbClient
 */
 
         /// <summary>
+        /// Creates a stream to a given path.
+        /// This might be moved to AdbClient.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public AdbStream CreateStream(string path)
+        {
+            uint streamId = (uint)new Random().Next(10000, 999999);
+            var buff = Command.CreateOpenCommand(path, streamId);
+            var adb = AdbClient.Instance;
+            using (var sock = adb.GetSocket())
+            {
+                AdbClient.Instance.SetDevice(sock, this.DeviceData);
+                sock.Send(buff, buff.Length);
+                var stream = new AdbStream(sock, streamId);
+                return stream;
+            }
+        }
+
+        /// <summary>
         /// Raises the <see cref="E:StateChanged"/> event.
         /// </summary>
         /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
@@ -804,5 +820,29 @@ namespace SharpAdbClient
                 this.ClientListChanged(this, e);
             }
         }
+
+        public async Task Uninstall(string pkgname, IShellOutputReceiver receiver)
+        {
+            var ar = new AsyncReceiver((lines) =>
+            {
+                string data = string.Join("\n", lines);
+                bool isUnknown = data.ToLower().Contains("unknown package");
+                if (isUnknown)
+                {
+                    return true;
+                }
+                Console.WriteLine(data);
+                return true;
+            });
+            this.ExecuteShellCommand($"pm uninstall {pkgname}", ar);
+            await ar.WaitAsync();
+        }
+
+        public async Task Install(Stream pkg)
+        {
+            AdbClient.Instance.Install(this.DeviceData, pkg, null);
+        }
+
+        
     }
 }

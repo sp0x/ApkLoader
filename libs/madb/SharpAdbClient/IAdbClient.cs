@@ -2,16 +2,17 @@
 // Copyright (c) The Android Open Source Project, Ryan Conrad, Quamotion. All rights reserved.
 // </copyright>
 
-using System.Collections.Generic;
-
 namespace SharpAdbClient
 {
     using Logs;
-    using System; 
+    using System;
+    using System.Collections.Generic;
+    using System.Drawing;
     using System.IO;
     using System.Net;
+    using System.Text;
     using System.Threading;
-    using System.Threading.Tasks; 
+    using System.Threading.Tasks;
 
     /// <summary>
     /// A common interface for any class that allows you to interact with the
@@ -48,11 +49,97 @@ namespace SharpAdbClient
         // <host-prefix>:get-devpath is not implemented
         // <host-prefix>:get-state is not implemented
 
-        /// <include file='IAdbClient.xml' path='/IAdbClient/CreateForward/*'/>
-        void CreateForward(DeviceData device, string local, string remote, bool allowRebind);
+        /// <summary>
+        /// Asks the ADB server to forward local connections from <paramref name="local"/>
+        /// to the <paramref name="remote"/> address on the <paramref name="device"/>.
+        /// </summary>
+        /// <param name="device">
+        /// The device to which to forward the connections.
+        /// </param>
+        /// <param name="local">
+        /// <para>
+        /// The local address to forward. This value can be in one of:
+        /// </para>
+        /// <list type="ordered">
+        ///   <item>
+        ///     <c>tcp:&lt;port&gt;</c>: TCP connection on localhost:&lt;port&gt;
+        ///   </item>
+        ///   <item>
+        ///     <c>local:&lt;path&gt;</c>: Unix local domain socket on &lt;path&gt;
+        ///   </item>
+        /// </list>
+        /// </param>
+        /// <param name="remote">
+        /// <para>
+        /// The remote address to forward. This value can be in one of:
+        /// </para>
+        /// <list type="ordered">
+        ///   <item>
+        ///     <c>tcp:&lt;port&gt;</c>: TCP connection on localhost:&lt;port&gt; on device
+        ///   </item>
+        ///   <item>
+        ///     <c>local:&lt;path&gt;</c>: Unix local domain socket on &lt;path&gt; on device
+        ///   </item>
+        ///   <item>
+        ///     <c>jdwp:&lt;pid&gt;</c>: JDWP thread on VM process &lt;pid&gt; on device.
+        ///   </item>
+        /// </list>
+        /// </param>
+        /// <param name="allowRebind">
+        /// If set to <see langword="true"/>, the request will fail if there is already a forward
+        /// connection from <paramref name="local"/>.
+        /// </param>
+        /// <returns>
+        /// If your requested to start forwarding to local port TCP:0, the port number of the TCP port
+        /// which has been opened. In all other cases, <c>0</c>.
+        /// </returns>
+        int CreateForward(DeviceData device, string local, string remote, bool allowRebind);
 
-        /// <include file='IAdbClient.xml' path='/IAdbClient/CreateForward/*'/>
-        void CreateForward(DeviceData device, ForwardSpec local, ForwardSpec remote, bool allowRebind);
+        /// <summary>
+        /// Asks the ADB server to forward local connections from <paramref name="local"/>
+        /// to the <paramref name="remote"/> address on the <paramref name="device"/>.
+        /// </summary>
+        /// <param name="device">
+        /// The device to which to forward the connections.
+        /// </param>
+        /// <param name="local">
+        /// <para>
+        /// The local address to forward. This value can be in one of:
+        /// </para>
+        /// <list type="ordered">
+        ///   <item>
+        ///     <c>tcp:&lt;port&gt;</c>: TCP connection on localhost:&lt;port&gt;
+        ///   </item>
+        ///   <item>
+        ///     <c>local:&lt;path&gt;</c>: Unix local domain socket on &lt;path&gt;
+        ///   </item>
+        /// </list>
+        /// </param>
+        /// <param name="remote">
+        /// <para>
+        /// The remote address to forward. This value can be in one of:
+        /// </para>
+        /// <list type="ordered">
+        ///   <item>
+        ///     <c>tcp:&lt;port&gt;</c>: TCP connection on localhost:&lt;port&gt; on device
+        ///   </item>
+        ///   <item>
+        ///     <c>local:&lt;path&gt;</c>: Unix local domain socket on &lt;path&gt; on device
+        ///   </item>
+        ///   <item>
+        ///     <c>jdwp:&lt;pid&gt;</c>: JDWP thread on VM process &lt;pid&gt; on device.
+        ///   </item>
+        /// </list>
+        /// </param>
+        /// <param name="allowRebind">
+        /// If set to <see langword="true"/>, the request will fail if there is already a forward
+        /// connection from <paramref name="local"/>.
+        /// </param>
+        /// <returns>
+        /// If your requested to start forwarding to local port TCP:0, the port number of the TCP port
+        /// which has been opened. In all other cases, <c>0</c>.
+        /// </returns>
+        int CreateForward(DeviceData device, ForwardSpec local, ForwardSpec remote, bool allowRebind);
 
         /// <include file='IAdbClient.xml' path='/IAdbClient/RemoveForward/*'/>
         void RemoveForward(DeviceData device, int localPort);
@@ -65,6 +152,32 @@ namespace SharpAdbClient
 
         /// <include file='IAdbClient.xml' path='/IAdbClient/ExecuteRemoteCommand/*'/>
         Task ExecuteRemoteCommandAsync(string command, DeviceData device, IShellOutputReceiver receiver, CancellationToken cancellationToken, int maxTimeToOutputResponse);
+
+        /// <summary>
+        /// Executes a command on the device.
+        /// </summary>
+        /// <param name="command">
+        /// The command to execute.
+        /// </param>
+        /// <param name="device">
+        /// The device on which to run the command.
+        /// </param>
+        /// <param name="receiver">
+        /// The receiver which will get the command output.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// A <see cref="CancellationToken"/> which can be used to cancel the asynchronous operation.
+        /// </param>
+        /// <param name="maxTimeToOutputResponse">
+        /// A default timeout for the command.
+        /// </param>
+        /// <param name="encoding">
+        /// The encoding to use when parsing the command output.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Task"/> which represents the asynchronous operation.
+        /// </returns>
+        Task ExecuteRemoteCommandAsync(string command, DeviceData device, IShellOutputReceiver receiver, CancellationToken cancellationToken, int maxTimeToOutputResponse, Encoding encoding);
 
         // shell: not implemented
         // remount: not implemented
@@ -88,7 +201,7 @@ namespace SharpAdbClient
         Framebuffer CreateRefreshableFramebuffer(DeviceData device);
 
         /// <include file='IAdbClient.xml' path='/IAdbClient/GetFrameBuffer/*'/>
-        Task<System.Drawing.Image> GetFrameBufferAsync(DeviceData device, CancellationToken cancellationToken);
+        Task<Image> GetFrameBufferAsync(DeviceData device, CancellationToken cancellationToken);
 
         // jdwp:<pid>: not implemented
         // track-jdwp: not implemented
@@ -113,7 +226,9 @@ namespace SharpAdbClient
         void Disconnect(DnsEndPoint endpoint);
 
         /// <include file='IAdbClient.xml' path='/IAdbClient/SetDevice/*'/>
-        void SetDevice(IAdbSocket socket, IAdbDeviceData device);
+        void SetDevice(IAdbSocket socket, DeviceData device);
+
+        IAdbSocket GetSocket();
 
         /// <summary>
         /// Restarts the ADB daemon running on the device with root privileges.

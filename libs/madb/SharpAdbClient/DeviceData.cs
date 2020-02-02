@@ -10,13 +10,13 @@ namespace SharpAdbClient
     /// <summary>
     /// Represents a device that is connected to the Android Debug Bridge.
     /// </summary>
-    public class DeviceData : IAdbDeviceData
+    public class DeviceData
     {
         /// <summary>
         /// A regular expression that can be used to parse the device information that is returned
         /// by the Android Debut Bridge.
         /// </summary>
-        internal const string DeviceDataRegexString = @"^(?<serial>[a-zA-Z0-9_-]+(?:\s?[\.a-zA-Z0-9_-]+)?(?:\:\d{1,})?)\s+(?<state>device|offline|unknown|bootloader|recovery|download|unauthorized|host)(\s+usb:(?<usb>[^:]+))?(?:\s+product:(?<product>[^:]+))?(\s+model\:(?<model>[\S]+))?(\s+device\:(?<device>[\S]+))?(\s+features:(?<features>[^:]+))?$";
+        internal const string DeviceDataRegexString = @"^(?<serial>[a-zA-Z0-9_-]+(?:\s?[\.a-zA-Z0-9_-]+)?(?:\:\d{1,})?)\s+(?<state>device|connecting|offline|unknown|bootloader|recovery|download|authorizing|unauthorized|host|no permissions)(?<message>.*?)(\s+usb:(?<usb>[^:]+))?(?:\s+product:(?<product>[^:]+))?(\s+model\:(?<model>[\S]+))?(\s+device\:(?<device>[\S]+))?(\s+features:(?<features>[^:]+))?(\s+transport_id:(?<transport_id>[^:]+))?$";
 
         /// <summary>
         /// A regular expression that can be used to parse the device information that is returned
@@ -32,8 +32,6 @@ namespace SharpAdbClient
             get;
             set;
         }
-
-        public string GetEndpoint() => Serial;
 
         /// <summary>
         /// Gets or sets the device state.
@@ -90,6 +88,24 @@ namespace SharpAdbClient
         }
 
         /// <summary>
+        /// Gets or sets the transport ID for this device.
+        /// </summary>
+        public string TransportId
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gets or sets the device info message. Currently only seen for NoPermissions state.
+        /// </summary>
+        public string Message
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Creates a new instance of the <see cref="DeviceData"/> class based on
         /// data retrieved from the Android Debug Bridge.
         /// </summary>
@@ -112,7 +128,9 @@ namespace SharpAdbClient
                     Product = m.Groups["product"].Value,
                     Name = m.Groups["device"].Value,
                     Features = m.Groups["features"].Value,
-                    Usb = m.Groups["usb"].Value
+                    Usb = m.Groups["usb"].Value,
+                    TransportId = m.Groups["transport_id"].Value,
+                    Message = m.Groups["message"].Value
                 };
             }
             else

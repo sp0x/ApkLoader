@@ -6,7 +6,7 @@
     <Title>.NET client for adb, Android Debug Bridge (SharpAdbClient)</Title>
     <VersionPrefix>2.2.0</VersionPrefix>
     <Authors>The Android Open Source Project, Ryan Conrad, Quamotion</Authors>
-    <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard1.3;netcoreapp3.0</TargetFrameworks>
     <AssemblyName>SharpAdbClient</AssemblyName>
     <AssemblyOriginatorKeyFile>SharpAdbClient.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
@@ -18,10 +18,15 @@
     <RepositoryUrl>http://github.com/quamotion/madb</RepositoryUrl>
     <PackageProjectUrl>http://github.com/quamotion/madb</PackageProjectUrl>
     <Product>SharpAdbClient: A .NET client for the Android Debug Bridge (adb)</Product>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0'">
-    <PackageReference Include="System.Drawing.Common" Version="4.5.0-preview1-25718-03" />
+    <PackageReference Include="System.Drawing.Common" Version="4.5.0" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp3.0'">
+    <PackageReference Include="System.Drawing.Common" Version="4.5.0" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
@@ -32,7 +37,13 @@
     <PackageReference Include="System.Buffers" Version="4.3.0" />
     <PackageReference Include="System.Net.Sockets" Version="4.3.0" />
     <PackageReference Include="System.Linq" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
+    <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0" />
   </ItemGroup>
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
+    <DefineConstants>$(DefineConstants);STD13</DefineConstants>
+  </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net451' ">
     <DefineConstants>$(DefineConstants);NETFX</DefineConstants>
@@ -44,7 +55,16 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
-  <ItemGroup> 
+  <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" Version="2.1.23" PrivateAssets="all" />
+    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.7.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.0'">
+    <PackageReference Include="Microsoft.NETCore.App">
+      <Version>2.0.0</Version>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

@@ -8,6 +8,7 @@ namespace SharpAdbClient
     using SharpAdbClient.Logs;
     using System;
     using System.Net;
+    using System.Text;
     using System.Threading;
 
     /// <summary>
@@ -36,9 +37,9 @@ namespace SharpAdbClient
         /// or
         /// Device rejected command:  + resp.Message
         /// </exception>
-        public static void CreateForward(this IAdbClient client, DeviceData device, int localPort, int remotePort)
+        public static int CreateForward(this IAdbClient client, DeviceData device, int localPort, int remotePort)
         {
-            client.CreateForward(device, $"tcp:{localPort}", $"tcp:{remotePort}", true);
+            return client.CreateForward(device, $"tcp:{localPort}", $"tcp:{remotePort}", true);
         }
 
         /// <summary>
@@ -62,9 +63,9 @@ namespace SharpAdbClient
         /// <exception cref="AdbException">
         /// The device rejected command. The error message will include the error message provided by the device.
         /// </exception>
-        public static void CreateForward(this IAdbClient client, DeviceData device, int localPort, string remoteSocket)
+        public static int CreateForward(this IAdbClient client, DeviceData device, int localPort, string remoteSocket)
         {
-            client.CreateForward(device, $"tcp:{localPort}", $"local:{remoteSocket}", true);
+            return client.CreateForward(device, $"tcp:{localPort}", $"local:{remoteSocket}", true);
         }
 
         /// <summary>
@@ -77,6 +78,21 @@ namespace SharpAdbClient
         /// <param name="device">The device to execute on</param>
         /// <param name="rcvr">The shell output receiver</param>
         public static void ExecuteRemoteCommand(this IAdbClient client, string command, DeviceData device, IShellOutputReceiver rcvr)
+        {
+            ExecuteRemoteCommand(client, command, device, rcvr, AdbClient.Encoding);
+        }
+
+        /// <summary>
+        /// Executes a shell command on the remote device
+        /// </summary>
+        /// <param name="client">
+        /// An instance of a class that implements the <see cref="IAdbClient"/> interface.
+        /// </param>
+        /// <param name="command">The command to execute</param>
+        /// <param name="device">The device to execute on</param>
+        /// <param name="rcvr">The shell output receiver</param>
+        /// <param name="encoding">The encoding to use.</param>
+        public static void ExecuteRemoteCommand(this IAdbClient client, string command, DeviceData device, IShellOutputReceiver rcvr, Encoding encoding)
         {
             try
             {

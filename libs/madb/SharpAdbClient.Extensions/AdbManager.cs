@@ -16,11 +16,19 @@
         private AdbServer _server;
         private DeviceMonitor _monitor;
 
-        public AdbManager()
+        public AdbManager(string adbFile)
         {
             _deviceList = new Dictionary<string, DeviceData>();
             _server = new AdbServer();
-            _server.StartServer(GetAdbPath(), restartServerIfNewer: false);
+            if (adbFile != null && File.Exists(adbFile))
+            {
+                _server.StartServer(adbFile, restartServerIfNewer: false);
+            }
+            else
+            {
+                _server.StartServer(GetAdbPath(), restartServerIfNewer: false);
+            }
+            
         }
 
         /// <include file='IDeviceMonitor.xml' path='/IDeviceMonitor/DeviceConnected/*'/>

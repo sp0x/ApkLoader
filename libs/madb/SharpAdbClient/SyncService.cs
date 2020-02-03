@@ -47,6 +47,8 @@ namespace SharpAdbClient
     /// </example>
     public class SyncService : ISyncService, IDisposable
     {
+        private bool opened;
+
         /// <summary>
         /// The maximum length of a path on the remote device.
         /// </summary>
@@ -114,11 +116,16 @@ namespace SharpAdbClient
         /// <include file='.\ISyncService.xml' path='/SyncService/Open/*'/>
         public void Open()
         {
+            if (this.opened)
+            {
+                return;
+            }
             // target a specific device
             AdbClient.Instance.SetDevice(this.Socket, this.Device);
 
             this.Socket.SendAdbRequest("sync:");
             var resp = this.Socket.ReadAdbResponse();
+            this.opened = true;
         }
 
         /// <include file='.\ISyncService.xml' path='/SyncService/Push/*'/>

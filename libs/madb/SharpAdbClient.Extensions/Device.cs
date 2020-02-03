@@ -541,8 +541,9 @@ namespace SharpAdbClient
                     syncService.Open();
                     return syncService;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Console.WriteLine(ex);
                 }
 
                 return null;
@@ -590,7 +591,18 @@ namespace SharpAdbClient
         /// <param name="commandArgs">The command args.</param>
         public void ExecuteShellCommand(string command, IShellOutputReceiver receiver, params object[] commandArgs)
         {
-            AdbClient.Instance.ExecuteRemoteCommand(string.Format(command, commandArgs), this.DeviceData, receiver);
+            AdbClient.Instance.ExecuteRemoteCommand(string.Format(command, commandArgs), this.DeviceData, receiver, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Executes a shell command on the device, and sends the result to a receiver.
+        /// </summary>
+        /// <param name="command">The command.</param>
+        /// <param name="receiver">The receiver.</param>
+        /// <param name="commandArgs">The command args.</param>
+        public void ExecuteShellCommand(string command, IShellOutputReceiver receiver, CancellationToken ct)
+        {
+            AdbClient.Instance.ExecuteRemoteCommand(command, this.DeviceData, receiver, ct);
         }
 
         /// <summary>
@@ -602,7 +614,7 @@ namespace SharpAdbClient
         /// <param name="commandArgs">The command args.</param>
         public void ExecuteShellCommand(string command, IShellOutputReceiver receiver, int timeout, params object[] commandArgs)
         {
-            AdbClient.Instance.ExecuteRemoteCommand(string.Format(command, commandArgs), this.DeviceData, receiver);
+            AdbClient.Instance.ExecuteRemoteCommand(string.Format(command, commandArgs), this.DeviceData, receiver, CancellationToken.None);
         }
 
         /// <summary>
@@ -646,7 +658,7 @@ namespace SharpAdbClient
         /// <param name="commandArgs">The command args.</param>
         public void ExecuteRootShellCommand(string command, IShellOutputReceiver receiver, int timeout, params object[] commandArgs)
         {
-            AdbClient.Instance.ExecuteRemoteCommand(string.Format("su -c \"{0}\"", command), this.DeviceData, receiver);
+            AdbClient.Instance.ExecuteRemoteCommand(string.Format("su -c \"{0}\"", command), this.DeviceData, receiver, CancellationToken.None);
         }
         
         /// <summary>
@@ -821,6 +833,35 @@ namespace SharpAdbClient
             }
         }
 
+        public async Task<bool> HasPackage(string pkgname)
+        {
+            //pm list packages com.miui.home
+            bool hasPackage = false;
+            var ar = new AsyncReceiver((lines) =>
+            {
+                string data = string.Join("\n", lines);
+                bool isInstalled = data.ToLower().Contains($"package:{pkgname}");
+                hasPackage = isInstalled;
+                return true;
+            });
+            // Create the token source.
+            CancellationTokenSource cts = new CancellationTokenSource();
+            this.ExecuteShellCommand($"pm list packages {pkgname}", ar, cts.Token);
+            int timeout = 1000;
+            var task = ar.WaitAsync();
+            if (await Task.WhenAny(task, Task.Delay(timeout)) == task)
+            {
+                // task completed within timeout
+
+            }
+            else
+            {
+                cts.Cancel();
+                // timeout logic
+            }
+            return hasPackage;
+        }
+
         public async Task Uninstall(string pkgname, IShellOutputReceiver receiver)
         {
             var ar = new AsyncReceiver((lines) =>
@@ -843,6 +884,24 @@ namespace SharpAdbClient
             AdbClient.Instance.Install(this.DeviceData, pkg, null);
         }
 
-        
+
+        public async Task<bool> StartActivity(string act)
+        {
+            bool isOk = false;
+            var ar = new AsyncReceiver((lines) =>
+            {
+                string data = string.Join("\n", lines);
+                isOk = data.ToLower().Contains("Starting: Intent");
+                return true;
+            });
+            this.ExecuteShellCommand($"am start {act}", ar);
+            await ar.WaitAsync();
+            return isOk;
+        }
+
+//        public async Task Upload(Stream data, string path)
+//        {
+//            AdbClient.Instance.Upload(data, path);
+//        }
     }
 }

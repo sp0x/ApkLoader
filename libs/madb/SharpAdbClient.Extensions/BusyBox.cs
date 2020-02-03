@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace SharpAdbClient
 {
@@ -128,7 +129,7 @@ namespace SharpAdbClient
 			command.ThrowIfNullOrWhiteSpace ( "command" );
 			var cmd = String.Format ( "{0} {1}", BUSYBOX_COMMAND, String.Format ( command, commandArgs ) );
 			Log.Debug ( "executing: {0}", cmd );
-			AdbClient.Instance.ExecuteRemoteCommand(cmd, this.Device.DeviceData, receiver);
+			AdbClient.Instance.ExecuteRemoteCommand(cmd, this.Device.DeviceData, receiver, CancellationToken.None);
 		}
 
         /// <include file='.\BusyBox.xml' path='/BusyBox/ExecuteRootShellCommand/*'/>

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.FileProviders;
 using SharpAdbClient;
@@ -19,6 +20,7 @@ namespace CruzrUploader
 
         private static HashSet<string> mPackages = new HashSet<string>(new string[]
         {
+            "com.autostart",
             "com.netlyt.cruzrdb",
             "com.netlyt.cruzrdb.mini"
         });
@@ -32,6 +34,7 @@ namespace CruzrUploader
             mKeyHelper = new KeyHelper();
             mKeyHelper.CopyAdbKeys();
             string outputDir = Path.Combine(Directory.GetCurrentDirectory(), "packages");
+            string adbFile = Path.Combine(Directory.GetCurrentDirectory(), "platform_tools", "adb.exe");
             if (!Directory.Exists(outputDir))
             {
                 Directory.CreateDirectory(outputDir);
@@ -46,13 +49,14 @@ namespace CruzrUploader
             }
 
             mPackage = AskForPackageName();
-            mAdb = new AdbManager();
+            mAdb = new AdbManager(adbFile);
             mAdb.ListenForDevices();
-            mAdb.DeviceConnected += (sender, e) =>
+            mAdb.DeviceConnected += async (sender, e) =>
             {
                 var d = e.Device;
                 Console.WriteLine($"Device connected: {d.Name}[{d.ToString()}]");
-                installPackage(d, mPackage);
+                await CheckPrerequisites(d);
+                await InstallPackage(d, mPackage);
             };
             mAdb.DeviceDisconnected += (sender, e) =>
             {
@@ -72,11 +76,33 @@ namespace CruzrUploader
             var devs = mAdb.GetDevicesInfos();
             foreach (var device in devs)
             {
-                await installPackage(device, pkgname);
+                await CheckPrerequisites(device);
+                await InstallPackage(device, pkgname);
             }
         }
 
-        private static async Task installPackage(DeviceData dd, string pkgname)
+        private static async Task CheckPrerequisites(DeviceData dd)
+        {
+            var dev = mAdb.GetDevice(dd.Serial);
+            bool hasAutostart = await dev.HasPackage("com.autostart");
+            if (!hasAutostart)
+            {
+                using var pkgstrm = mPkgMgr.GetStream("com.autostart");
+                await dev.Install(pkgstrm);
+                AdbClient.Instance.Root(dd);
+                var embeddedProvider = new EmbeddedFileProvider(Assembly.GetExecutingAssembly());
+                using Stream autostartConfig = embeddedProvider.GetFileInfo("assets\\autostart.xml").CreateReadStream();
+//                string rempath = "/data/data/com.autostart/shared_prefs/autostart.xml";
+//                //await dev.Upload(autostartConfig, rempath);
+//                dev.SyncService.Push(autostartConfig, rempath, 644, DateTime.Now, null, CancellationToken.None);
+//                //Start the app
+//                await dev.StartActivity("com.autostart/com.autostart.AutoStartActivity");
+                //Add the autostart
+            }
+
+        }
+
+        private static async Task InstallPackage(DeviceData dd, string pkgname)
         {
             Console.WriteLine($"Installing to {dd}");
             var dev = mAdb.GetDevice(dd.Serial);
@@ -88,6 +114,8 @@ namespace CruzrUploader
             using var pkgstrm = mPkgMgr.GetStream(pkgname);
             await dev.Install(pkgstrm);
             Console.WriteLine($"Installation finished on {dd}");
+            string activity = $"{pkgname}/.MainActivity";
+            await dev.StartActivity(activity);
         }
 
         private static string AskForPackageName()

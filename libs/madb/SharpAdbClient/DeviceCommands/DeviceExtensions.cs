@@ -52,7 +52,7 @@ namespace SharpAdbClient.DeviceCommands
         /// </param>
         public static void ExecuteShellCommand(this DeviceData device, IAdbClient client, string command, IShellOutputReceiver receiver)
         {
-            client.ExecuteRemoteCommand(command, device, receiver);
+            client.ExecuteRemoteCommand(command, device, receiver, CancellationToken.None);
         }
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace SharpAdbClient.DeviceCommands
         public static Dictionary<string, string> GetProperties(this DeviceData device)
         {
             var receiver = new GetPropReceiver();
-            AdbClient.Instance.ExecuteRemoteCommand(GetPropReceiver.GetpropCommand, device, receiver);
+            AdbClient.Instance.ExecuteRemoteCommand(GetPropReceiver.GetpropCommand, device, receiver, CancellationToken.None);
             return receiver.Properties;
         }
 
@@ -103,7 +103,7 @@ namespace SharpAdbClient.DeviceCommands
         public static Dictionary<string, string> GetEnvironmentVariables(this DeviceData device)
         {
             var receiver = new EnvironmentVariablesReceiver();
-            AdbClient.Instance.ExecuteRemoteCommand(EnvironmentVariablesReceiver.PrintEnvCommand, device, receiver);
+            AdbClient.Instance.ExecuteRemoteCommand(EnvironmentVariablesReceiver.PrintEnvCommand, device, receiver, CancellationToken.None);
             return receiver.EnvironmentVariables;
         }
 

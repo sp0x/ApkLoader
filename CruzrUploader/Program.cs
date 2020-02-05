@@ -6,9 +6,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using LibAppDeployer;
 using Microsoft.Extensions.FileProviders;
 using SharpAdbClient;
-using SharpAdbClient.DeviceCommands;
 
 namespace CruzrUploader
 {
@@ -31,22 +31,9 @@ namespace CruzrUploader
         static async Task Main(string[] args)
         {
             Console.WriteLine(@"Copying keys..");
-            mKeyHelper = new KeyHelper();
-            mKeyHelper.CopyAdbKeys();
-            string outputDir = Path.Combine(Directory.GetCurrentDirectory(), "packages");
+            mKeyHelper = new KeyHelper(true);
             string adbFile = Path.Combine(Directory.GetCurrentDirectory(), "platform_tools", "adb.exe");
-            if (!Directory.Exists(outputDir))
-            {
-                Directory.CreateDirectory(outputDir);
-            }
-
-            mPkgMgr = new PackageManager("https://apks.netlyt.io/", outputDir);
-
-            foreach (var pkg in mPackages)
-            {
-                Console.WriteLine($"Downloading package: {pkg}");
-                mPkgMgr.AddPackage(pkg);
-            }
+            mPkgMgr = PackageManager.Initialize(mPackages.ToArray());
 
             mPackage = AskForPackageName();
             mAdb = new AdbManager(adbFile);

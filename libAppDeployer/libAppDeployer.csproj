@@ -1,0 +1,105 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="assets\autostart.xml" />
+    <None Remove="keys\adbkey" />
+    <None Remove="keys\adbkey.pub" />
+    <None Remove="platform_tools\adb.exe" />
+    <None Remove="platform_tools\AdbWinApi.dll" />
+    <None Remove="platform_tools\AdbWinUsbApi.dll" />
+    <None Remove="platform_tools\deployagent" />
+    <None Remove="platform_tools\deployagent.jar" />
+    <None Remove="platform_tools\deploypatchgenerator.jar" />
+    <None Remove="platform_tools\dmtracedump.exe" />
+    <None Remove="platform_tools\etc1tool.exe" />
+    <None Remove="platform_tools\fastboot.exe" />
+    <None Remove="platform_tools\hprof-conv.exe" />
+    <None Remove="platform_tools\lib64\libc++.so" />
+    <None Remove="platform_tools\libwinpthread-1.dll" />
+    <None Remove="platform_tools\make_f2fs.exe" />
+    <None Remove="platform_tools\mke2fs.conf" />
+    <None Remove="platform_tools\mke2fs.exe" />
+    <None Remove="platform_tools\NOTICE.txt" />
+    <None Remove="platform_tools\package.xml" />
+    <None Remove="platform_tools\source.properties" />
+    <None Remove="platform_tools\sqlite3.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="assets\autostart.xml" />
+    <EmbeddedResource Include="keys\adbkey" />
+    <EmbeddedResource Include="keys\adbkey.pub" />
+    <EmbeddedResource Include="platform_tools\adb.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\AdbWinApi.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\AdbWinUsbApi.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\deployagent">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\deployagent.jar">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\deploypatchgenerator.jar">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\dmtracedump.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\etc1tool.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\fastboot.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\hprof-conv.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\lib64\libc++.so">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\libwinpthread-1.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\make_f2fs.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\mke2fs.conf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\mke2fs.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\NOTICE.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\package.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\source.properties">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="platform_tools\sqlite3.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="1.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\libs\madb\SharpAdbClient.Extensions\SharpAdbClient.Extensions.csproj" />
+    <ProjectReference Include="..\libs\madb\SharpAdbClient\SharpAdbClient.csproj" />
+    <ProjectReference Include="..\libs\ssh.net.core\SSH.Net.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -6,10 +6,17 @@ using System.Reflection;
 using System.Text;
 using Microsoft.Extensions.FileProviders;
 
-namespace CruzrUploader
+namespace LibAppDeployer
 {
     public class KeyHelper
     {
+        public KeyHelper(bool copyKeys = false)
+        {
+            if (copyKeys)
+            {
+                this.CopyAdbKeys();
+            }
+        }
         public void CopyAdbKeys()
         {
             var embeddedProvider = new EmbeddedFileProvider(Assembly.GetExecutingAssembly());

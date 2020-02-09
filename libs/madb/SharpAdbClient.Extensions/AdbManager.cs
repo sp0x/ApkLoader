@@ -79,7 +79,7 @@
                 }
                 catch (Exception ex)
                 {
-
+                    Console.WriteLine(ex.Message);
                 }
 
             }
@@ -149,7 +149,6 @@
             else
             {
                 throw new Exception("Unsupported OS!");
-                return null;
             }
         }
 

@@ -881,7 +881,7 @@ namespace SharpAdbClient
 
         public async Task Install(Stream pkg)
         {
-            AdbClient.Instance.Install(this.DeviceData, pkg, null);
+            await Task.Factory.StartNew(() => { AdbClient.Instance.Install(this.DeviceData, pkg, null); });
         }
 
 

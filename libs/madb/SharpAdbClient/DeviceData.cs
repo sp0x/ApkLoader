@@ -145,6 +145,17 @@ namespace SharpAdbClient
             return this.Serial;
         }
 
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int h = 17;
+                h = h * 23 + Serial.GetHashCode();
+                //h = h * 23 + Model.GetHashCode();
+                return h;
+            }
+        }
+
         /// <summary>
         /// Get the device state from the string value
         /// </summary>

@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfAppDeployer"
         xmlns:libAppDeployer="clr-namespace:LibAppDeployer;assembly=libAppDeployer"
+        xmlns:sharpAdbClient="clr-namespace:SharpAdbClient;assembly=SharpAdbClient"
         mc:Ignorable="d"
         Title="App Deployer" Height="450" Width="800">
 
@@ -25,28 +26,41 @@
             <DataTemplate x:Key="packageTemplate" DataType="libAppDeployer:AndroidPackage">
                 <TextBlock Text="{Binding Path=Name}"></TextBlock>
             </DataTemplate>
-            <DataTemplate x:Key="deviceTemplate" DataType="local:AndroidDevice">
-                <TextBlock Text="{Binding Path=Serial}"></TextBlock>
+            <DataTemplate x:Key="deviceTemplate" DataType="sharpAdbClient:DeviceData">
+                <TextBlock>
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0} [{1}]">
+                            <Binding Path="Model"/>
+                            <Binding Path="Serial"/>
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
             </DataTemplate>
         </Grid.Resources>
         <Label Content="Packages: "/>
         <ListBox x:Name="lstPackages" Margin="0,25,0,35" HorizontalAlignment="Left" Width="186" 
                  ItemsSource="{Binding}"
+                 SelectionChanged="LstPackages_OnSelectionChanged"
                  ItemTemplate="{StaticResource packageTemplate}"
                  />
         <Grid Margin="191,0,0,35">
-            <Image Name="imgIcon"></Image>
-            <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+
+            <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Top" Height="225" Margin="0,54,0,0">
+                <Image Name="imgIcon" Visibility="Hidden" HorizontalAlignment="Center" Width="87" Height="83" VerticalAlignment="Top"/>
                 <local:CircularProgressBar x:Name="loader" HorizontalAlignment="Center"></local:CircularProgressBar>
                 <Label Name="lblIcon" Content="Loading, please wait." HorizontalAlignment="Center"></Label>
                 <StackPanel Orientation="Horizontal">
                     <Label Content="Device: "/>
                     <ComboBox x:Name="cmbDevice"
+                              SelectionChanged="CmbDevice_OnSelectionChanged"
                               ItemsSource="{Binding}"
                               ItemTemplate="{StaticResource deviceTemplate}" Width="182"
                     />
                 </StackPanel>
+                <Button Click="BtnInstall_OnClick" x:Name="btnInstall" Content="Install package" 
+                        IsEnabled="False" Height="43" HorizontalAlignment="Center"/>
             </StackPanel>
+
         </Grid>
 
 

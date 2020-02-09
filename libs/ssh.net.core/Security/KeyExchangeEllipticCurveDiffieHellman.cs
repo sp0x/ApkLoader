@@ -226,13 +226,13 @@ namespace Renci.SshNet.Security
 
         private class _ExchangeHashData : SshData
         {
-            private byte[] _serverVersion;
-            private byte[] _clientVersion;
-            private byte[] _prime;
-            private byte[] _subGroup;
-            private byte[] _clientExchangeValue;
-            private byte[] _serverExchangeValue;
-            private byte[] _sharedKey;
+//            private byte[] _serverVersion;
+//            private byte[] _clientVersion;
+//            private byte[] _prime;
+//            private byte[] _subGroup;
+//            private byte[] _clientExchangeValue;
+//            private byte[] _serverExchangeValue;
+//            private byte[] _sharedKey;
 
             public string ServerVersion { get; set; }
 

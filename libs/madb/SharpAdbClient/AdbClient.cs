@@ -622,7 +622,7 @@ namespace SharpAdbClient
 
                 if (!string.Equals(value, "Success\n"))
                 {
-                    throw new AdbException(value);
+                    throw new AdbException(string.IsNullOrEmpty(value)? "Device disconnected" : value);
                 }
             }
         }

@@ -10,3 +10,5 @@ bin/
 /.vs/coreadb/v15/.suo
 /.vs
 /CruzrUploader/keys
+**.zip
+**.7z

@@ -10,5 +10,9 @@ bin/
 /.vs/coreadb/v15/.suo
 /.vs
 /CruzrUploader/keys
+/AppLoader/keys
+**/keys
 **.zip
 **.7z
+.idea
+*.tar.gz

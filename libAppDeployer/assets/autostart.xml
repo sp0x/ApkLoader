@@ -1,11 +1,11 @@
 ﻿<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 <map>
-  <string mName="package">com.netlyt.cruzrdb.mini</string>
+  <string mName="package">com.package</string>
   <boolean mName="noti" value="true" />
   <int mName="iteration" value="0" />
   <int mName="inbetweendelay" value="3" />
   <int mName="startdelay" value="15" />
-  <string mName="class">CruzrDB</string>
+  <string mName="class">Namex</string>
   <boolean mName="enabled" value="true" />
   <boolean mName="gotohome" value="true" />
 </map>

@@ -28,9 +28,7 @@ namespace WpfAppDeployer
         
         private static HashSet<string> mPackages = new HashSet<string>(new string[]
         {
-            "com.autostart",
-            "com.netlyt.cruzrdb",
-            "com.netlyt.cruzrdb.mini"
+            "com.autostart"
         });
 
         private AndroidPackage _mSelectedPackage;

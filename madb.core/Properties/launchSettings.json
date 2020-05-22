@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "coreadb": {
-      "commandName": "Project",
-      "commandLineArgs": "adbsock"
-    }
-  }
-}

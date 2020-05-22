@@ -1,0 +1,1 @@
+This project contains a few .Net Core tools for APK uploading

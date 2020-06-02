@@ -1,128 +1,69 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using LibAppDeployer;
-using Microsoft.Extensions.FileProviders;
-using SharpAdbClient;
+using AppLoader.Services;
+using Microsoft.Extensions.CommandLineUtils;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Serilog;
+using Log = Serilog.Log;
 
 namespace AppLoader
 {
-    class Program
+    public class Program
     {
-        private static PackageManager mPkgMgr;
-        private static KeyHelper mKeyHelper;
-        private static AdbManager mAdb;
+        private static CommandOption apkStoreHost;
 
-        private static HashSet<string> mPackages = new HashSet<string>(new string[]
+        static void Main(string[] args)
         {
-            "com.autostart"
-        });
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            var serviceProvider = services.BuildServiceProvider();
+            //Cli
+            var cli = new CommandLineApplication(throwOnUnexpectedArg: true);
+            apkStoreHost = cli.Option("--host", "The APK Store Hostname", CommandOptionType.SingleValue);
+            cli.HelpOption("-? | --help");
+         //   cli.Command("apkloader", (command) => { command.OnExecute(() => Execute(serviceProvider)); });
+            
+            cli.OnExecute(() => Execute(serviceProvider));
+            cli.Execute(args);
+        }
 
-        private static string mPackage;
-
-
-        static async Task Main(string[] args)
+        private static void ConfigureServices(IServiceCollection services)
         {
-            Console.WriteLine(@"Copying keys..");
-            mKeyHelper = new KeyHelper(true);
-            string adbFile = Path.Combine(Directory.GetCurrentDirectory(), "platform_tools", "adb.exe");
-            mPkgMgr = PackageManager.Initialize(mPackages.ToArray());
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile($"appsettings{environment}.json", optional: false, reloadOnChange: true)
+                .AddUserSecrets<SecureSettings>()
+                .AddEnvironmentVariables();
+            IConfiguration config = builder.Build();
+            var appSettings = config.GetSection("AppSettings");
+            var secureSettings = config.GetSection("apkloader");
+            //services.Configure<AppSettings>(appSettings);
+            services.Configure<SecureSettings>(secureSettings);
+            services.AddTransient<AppService>();
 
-            mPackage = AskForPackageName();
-            mAdb = new AdbManager(adbFile);
-            mAdb.ListenForDevices();
-            mAdb.DeviceConnected += async (sender, e) =>
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console()
+                .WriteTo.File("app.log")
+                .CreateLogger();
+            services.AddLogging(c => c.AddSerilog());
+            if (config["LOG_LEVEL"] == "true")
             {
-                var d = e.Device;
-                Console.WriteLine($"Device connected: {d.Name}[{d.ToString()}]");
-                await CheckPrerequisites(d);
-                await InstallPackage(d, mPackage);
-            };
-            mAdb.DeviceDisconnected += (sender, e) =>
+                services.Configure<LoggerFilterOptions>(options =>
+                    options.MinLevel = Microsoft.Extensions.Logging.LogLevel.Trace);
+            }
+            else
             {
-                var d = e.Device;
-                Console.WriteLine($"Device disconnected: {d.Name}[{d.ToString()}]");
-            };
-            await installToCurrentDevices(mPackage);
-
-            while (true)
-            {
-                Console.ReadLine();
+                services.Configure<LoggerFilterOptions>(options => options.MinLevel = LogLevel.Information);
             }
         }
 
-        private static async Task installToCurrentDevices(string pkgname)
+        private static int Execute(IServiceProvider services)
         {
-            var devs = mAdb.GetDevicesInfos();
-            foreach (var device in devs)
-            {
-                await CheckPrerequisites(device);
-                await InstallPackage(device, pkgname);
-            }
-        }
-
-        private static async Task CheckPrerequisites(DeviceData dd)
-        {
-            var dev = mAdb.GetDevice(dd.Serial);
-            bool hasAutostart = await dev.HasPackage("com.autostart");
-            if (!hasAutostart)
-            {
-                using var pkgstrm = mPkgMgr.GetStream("com.autostart");
-                await dev.Install(pkgstrm);
-                AdbClient.Instance.Root(dd);
-                var embeddedProvider = new EmbeddedFileProvider(Assembly.GetExecutingAssembly());
-                using Stream autostartConfig = embeddedProvider.GetFileInfo("assets\\autostart.xml").CreateReadStream();
-            }
-
-        }
-
-        private static async Task InstallPackage(DeviceData dd, string pkgname)
-        {
-            Console.WriteLine($"Installing to {dd}");
-            var dev = mAdb.GetDevice(dd.Serial);
-            var rcvr = new ConsoleOutputReceiver();
-            //Uninstall it firstly.
-            await dev.Uninstall(pkgname, rcvr);
-            Console.WriteLine(rcvr);
-            //Install it now
-            using var pkgstrm = mPkgMgr.GetStream(pkgname);
-            await dev.Install(pkgstrm);
-            Console.WriteLine($"Installation finished on {dd}");
-            string activity = $"{pkgname}/.MainActivity";
-            await dev.StartActivity(activity);
-        }
-
-        private static string AskForPackageName()
-        {
-            string selectedPackage = null;
-            while (true)
-            {
-                var i = 1;
-                Console.WriteLine("Select a package that you want to install.");
-                foreach (var pkg in mPackages)
-                {
-                    Console.WriteLine($"{i} - {pkg}");
-                    i++;
-                }
-
-                string resp = Console.ReadLine();
-                int pkgi = 0;
-                if (Int32.TryParse(resp, out pkgi))
-                {
-                    selectedPackage = mPackages.ToList()[pkgi - 1];
-                    break;
-                }
-            }
-
-            ;
-            Console.WriteLine(
-                $"Connect your device to install `{selectedPackage}`.\nThe package will be installed to any currently connected device.");
-            return selectedPackage;
+            services.GetService<AppService>().Run();
+            return 0;
         }
     }
 }

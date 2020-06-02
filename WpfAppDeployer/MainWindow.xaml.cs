@@ -51,7 +51,7 @@ namespace WpfAppDeployer
             mKeyHelper = new KeyHelper(true);
             lblIcon.Content = "Downloading packages";
             cmbDevice.ItemsSource = Devices;
-            mPkgMgr = PackageManager.GetDefault();
+            mPkgMgr = PackageManager.CreateWithUrlAndFetch(null);
             lstPackages.ItemsSource = Packages;
             mPkgMgr.PackageDownloaded += MPkgMgrOnPackageDownloaded;
             mPkgMgr.PackageLoaded += MPkgMgrOnPackageLoaded;

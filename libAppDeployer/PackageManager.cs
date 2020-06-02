@@ -16,11 +16,11 @@ namespace LibAppDeployer
     {
         public event EventHandler<PackageDownloadedEventArgs> PackageDownloaded;
         public event EventHandler<PackageDownloadedEventArgs> PackageLoaded;
-        private string mSource;
+        private Uri mSource;
         private string mDir;
         private List<AndroidPackage> mPackages;
 
-        public PackageManager(String source, String outputDirectory)
+        public PackageManager(Uri source, String outputDirectory)
         {
             mSource = source;
             mDir = outputDirectory;
@@ -32,32 +32,31 @@ namespace LibAppDeployer
             return mPackages;
         }
 
-        public static PackageManager GetDefault()
+        public static PackageManager CreateWithUrl(Uri url)
         {
             string outputDir = Path.Combine(Directory.GetCurrentDirectory(), "packages");
             if (!Directory.Exists(outputDir))
             {
                 Directory.CreateDirectory(outputDir);
             }
-            var pm = new PackageManager("https://apks.netlyt.io/", outputDir);
+            var pm = new PackageManager(url, outputDir);
             return pm;
         }
 
-        public static PackageManager Initialize(params string[] packageNames)
+        public static PackageManager CreateWithUrlAndFetch(Uri url, params string[] packageNames)
         {
-            var pm = GetDefault();
+            var pm = CreateWithUrl(url);
             foreach (var pkg in packageNames)
             {
                 Console.WriteLine($"Downloading package: {pkg}");
                 pm.AddPackage(pkg);
             }
-
             return pm;
         }
 
         public void AddPackage(string pkgname, bool force=false)
         {
-            Uri uri = new Uri(new Uri(mSource), "/api/" + pkgname);
+            Uri uri = new Uri(mSource, "/api/" + pkgname);
             var fileName = GetPath(pkgname);
             if (File.Exists(fileName) && !force)
             {
